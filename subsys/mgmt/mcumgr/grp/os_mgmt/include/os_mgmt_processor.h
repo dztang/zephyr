@@ -126,6 +126,8 @@ extern "C" {
 #define PROCESSOR_NAME "riscv"
 #elif defined(CONFIG_XTENSA)
 #define PROCESSOR_NAME "xtensa"
+#elif defined(CONFIG_MICROBLAZE)
+#define PROCESSOR_NAME "microblaze"
 #endif
 
 #ifndef PROCESSOR_NAME
