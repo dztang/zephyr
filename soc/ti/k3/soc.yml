@@ -7,3 +7,8 @@ family:
       cpuclusters:
       - name: m4
       - name: a53
+  - name: j721e
+    socs:
+    - name: j721e
+      cpuclusters:
+      - name: r5
