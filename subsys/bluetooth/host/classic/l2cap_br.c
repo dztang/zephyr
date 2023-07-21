@@ -249,7 +249,9 @@ static int l2cap_br_send_cb(struct bt_conn *conn, uint16_t cid, struct net_buf *
 	hdr->len = sys_cpu_to_le16(buf->len - sizeof(*hdr));
 	hdr->cid = sys_cpu_to_le16(cid);
 
-	return bt_conn_send_cb(conn, buf, cb, user_data);
+	/* FIXME: add BR support */
+
+	return -ENOSYS;
 }
 
 /* Send the buffer and release it in case of failure.
