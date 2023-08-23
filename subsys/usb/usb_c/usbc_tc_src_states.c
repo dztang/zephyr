@@ -238,7 +238,7 @@ void tc_attached_src_entry(void *obj)
 	}
 
 	/* Start sourcing VBUS */
-	if (data->policy_cb_src_en(dev, true) == 0) {
+	if (usbc_policy_src_en(dev, tcpc, true) == 0) {
 		/* Start sourcing VCONN */
 		if (policy_check(dev, CHECK_VCONN_CONTROL)) {
 			if (tcpc_set_vconn(tcpc, true) == 0) {
@@ -295,14 +295,13 @@ void tc_attached_src_exit(void *obj)
 	const struct device *tcpc = data->tcpc;
 	int ret;
 
-	__ASSERT(data->policy_cb_src_en != NULL,
-			"policy_cb_src_en must not be NULL");
-
 	/* Disable PD */
 	tc_pd_enable(dev, false);
 
 	/* Stop sourcing VBUS */
-	data->policy_cb_src_en(dev, false);
+	if (usbc_policy_src_en(dev, tcpc, false) != 0) {
+		LOG_ERR("Couldn't disable VBUS source");
+	}
 
 	/* Stop sourcing VCONN */
 	ret = tcpc_set_vconn(tcpc, false);
