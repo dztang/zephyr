@@ -895,3 +895,9 @@ test_i2c_ens160: ens160@83 {
 	reg = <0x83>;
 	int-gpios = <&test_gpio 0 0>;
 };
+
+test_i2c_wsen_hids_2525020210002: wsen_hids_2525020210002@84 {
+	compatible = "we,wsen-hids-2525020210002";
+	reg = <0x84>;
+	precision = "High";
+};
