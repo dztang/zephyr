@@ -11,6 +11,7 @@ from colorama import Fore
 import xml.etree.ElementTree as ET
 import string
 from datetime import datetime
+from twisterlib.testsuite import Status
 
 logger = logging.getLogger('twister')
 logger.setLevel(logging.DEBUG)
@@ -18,7 +19,7 @@ logger.setLevel(logging.DEBUG)
 class Reporting:
 
     def __init__(self, plan, env) -> None:
-        self.plan = plan #FIXME
+        self.plan = plan
         self.instances = plan.instances
         self.platforms = plan.platforms
         self.selected_platforms = plan.selected_platforms
@@ -42,7 +43,7 @@ class Reporting:
     def xunit_testcase(eleTestsuite, name, classname, status, ts_status, reason, duration, runnable, stats, log, build_only_as_skip):
         fails, passes, errors, skips = stats
 
-        if status in ['skipped', 'filtered']:
+        if status in [Status.SKIP, Status.FILTER]:
             duration = 0
 
         eleTestcase = ET.SubElement(
@@ -51,34 +52,33 @@ class Reporting:
             name=f"{name}",
             time=f"{duration}")
 
-        if status in ['skipped', 'filtered']:
+        if status in [Status.SKIP, Status.FILTER]:
             skips += 1
             # temporarily add build_only_as_skip to restore existing CI report behaviour
-            if ts_status == "passed" and not runnable:
+            if ts_status == Status.PASS and not runnable:
                 tc_type = "build"
             else:
                 tc_type = status
             ET.SubElement(eleTestcase, 'skipped', type=f"{tc_type}", message=f"{reason}")
-        elif status in ["failed", "blocked"]:
+        elif status in [Status.FAIL, Status.BLOCK]:
             fails += 1
             el = ET.SubElement(eleTestcase, 'failure', type="failure", message=f"{reason}")
             if log:
                 el.text = log
-        elif status == "error":
+        elif status == Status.ERROR:
             errors += 1
             el = ET.SubElement(eleTestcase, 'error', type="failure", message=f"{reason}")
             if log:
                 el.text = log
-        elif status == 'passed':
+        elif status == Status.PASS:
             if not runnable and build_only_as_skip:
                 ET.SubElement(eleTestcase, 'skipped', type="build", message="built only")
                 skips += 1
             else:
                 passes += 1
         else:
-            if not status:
-                logger.debug(f"{name}: No status")
-                ET.SubElement(eleTestcase, 'skipped', type=f"untested", message="No results captured, testsuite misconfiguration?")
+            if status == Status.NOTRUN:
+                ET.SubElement(eleTestcase, 'norun', type=f"untested", message="test was not run.")
             else:
                 logger.error(f"{name}: Unknown status '{status}'")
 
@@ -101,7 +101,7 @@ class Reporting:
         suites_to_report = all_suites
             # do not create entry if everything is filtered out
         if not self.env.options.detailed_skipped_report:
-            suites_to_report = list(filter(lambda d: d.get('status') != "filtered", all_suites))
+            suites_to_report = list(filter(lambda d: d.get('status') != Status.FILTER, all_suites))
 
         for suite in suites_to_report:
             duration = 0
@@ -171,7 +171,7 @@ class Reporting:
             suites = list(filter(lambda d: d['platform'] == platform, all_suites))
             # do not create entry if everything is filtered out
             if not self.env.options.detailed_skipped_report:
-                non_filtered = list(filter(lambda d: d.get('status') != "filtered", suites))
+                non_filtered = list(filter(lambda d: d.get('status') != Status.FILTER, suites))
                 if not non_filtered:
                     continue
 
@@ -197,7 +197,7 @@ class Reporting:
 
                 ts_status = ts.get('status')
                 # Do not report filtered testcases
-                if ts_status == 'filtered' and not self.env.options.detailed_skipped_report:
+                if ts_status == Status.FILTER and not self.env.options.detailed_skipped_report:
                     continue
                 if full_report:
                     for tc in ts.get("testcases", []):
@@ -244,6 +244,9 @@ class Reporting:
         suites = []
 
         for instance in self.instances.values():
+            # do not capture filtered tests
+            if instance.status == Status.FILTER and not self.env.options.report_filtered:
+                continue
             suite = {}
             handler_log = os.path.join(instance.build_dir, "handler.log")
             build_log = os.path.join(instance.build_dir, "build.log")
@@ -263,7 +266,7 @@ class Reporting:
                 suite['run_id'] = instance.run_id
 
             suite["runnable"] = False
-            if instance.status != 'filtered':
+            if instance.status != Status.FILTER:
                 suite["runnable"] = instance.run
 
             if used_ram:
@@ -279,26 +282,23 @@ class Reporting:
                 suite["available_ram"] = available_ram
             if available_rom:
                 suite["available_rom"] = available_rom
-            if instance.status in ["error", "failed"]:
+            if instance.status in [Status.ERROR, Status.FAIL]:
                 suite['status'] = instance.status
                 suite["reason"] = instance.reason
-                # FIXME
+                # FIXME: move this to a function
                 if os.path.exists(handler_log):
                     suite["log"] = self.process_log(handler_log)
                 elif os.path.exists(device_log):
                     suite["log"] = self.process_log(device_log)
                 else:
                     suite["log"] = self.process_log(build_log)
-            elif instance.status == 'filtered':
-                suite["status"] = "filtered"
-                suite["reason"] = instance.reason
-            elif instance.status == 'passed':
-                suite["status"] = "passed"
-            elif instance.status == 'skipped':
-                suite["status"] = "skipped"
+            elif instance.status == Status.PASS:
+                suite["status"] = instance.status
+            else:
+                suite["status"] = instance.status
                 suite["reason"] = instance.reason
 
-            if instance.status is not None:
+            if instance.status != Status.NOTRUN:
                 suite["execution_time"] =  f"{float(handler_time):.2f}"
 
             testcases = []
@@ -313,7 +313,7 @@ class Reporting:
                 # if we discover those at runtime, the fallback testcase wont be
                 # needed anymore and can be removed from the output, it does
                 # not have a status and would otherwise be reported as skipped.
-                if case.freeform and case.status is None and len(instance.testcases) > 1:
+                if case.freeform and case.status == Status.NOTRUN and len(instance.testcases) > 1:
                     continue
                 testcase = {}
                 testcase['identifier'] = case.name
@@ -326,12 +326,16 @@ class Reporting:
                 if case.output != "":
                     testcase['log'] = case.output
 
-                if case.status == "skipped":
-                    if instance.status == "filtered":
-                        testcase["status"] = "filtered"
+                if case.status == Status.SKIP:
+                    if instance.status == Status.FILTER:
+                        testcase["status"] = Status.FILTER
                     else:
-                        testcase["status"] = "skipped"
+                        testcase["status"] = Status.SKIP
                         testcase["reason"] = case.reason or instance.reason
+                elif case.status == Status.INPROGRESS:
+                    testcase["status"] = Status.FAIL
+                elif case.status == Status.NOTRUN and instance.status == Status.FAIL:
+                    testcase["status"] = Status.BLOCK
                 else:
                     testcase["status"] = case.status
                     if case.reason:
@@ -416,11 +420,11 @@ class Reporting:
             logger.warning("Deltas based on metrics from last %s" %
                            ("release" if not last_metrics else "run"))
 
-    def synopsis(self):
+    def synopsis(self, count=10):
         cnt = 0
         example_instance = None
         for instance in self.instances.values():
-            if instance.status not in ["passed", "filtered", "skipped"]:
+            if instance.status not in [Status.PASS, Status.FILTER, Status.SKIP, Status.NOTRUN]:
                 cnt = cnt + 1
                 if cnt == 1:
                     logger.info("-+" * 40)
@@ -428,7 +432,7 @@ class Reporting:
 
                 logger.info(f"{cnt}) {instance.testsuite.name} on {instance.platform.name} {instance.status} ({instance.reason})")
                 example_instance = instance
-            if cnt == 10:
+            if count != 0 and cnt == count:
                 break
 
         if cnt and example_instance:
@@ -443,31 +447,28 @@ class Reporting:
 
     def summary(self, results, unrecognized_sections, duration):
         failed = 0
-        run = 0
+        built_only = 0
         for instance in self.instances.values():
-            if instance.status == "failed":
+            if instance.status == Status.FAIL:
                 failed += 1
             elif instance.metrics.get("unrecognized") and not unrecognized_sections:
                 logger.error("%sFAILED%s: %s has unrecognized binary sections: %s" %
                              (Fore.RED, Fore.RESET, instance.name,
                               str(instance.metrics.get("unrecognized", []))))
                 failed += 1
+            elif instance.status == Status.NOTRUN:
+                built_only += 1
 
-            # FIXME: need a better way to identify executed tests
-            handler_time = instance.metrics.get('handler_time', 0)
-            if float(handler_time) > 0:
-                run += 1
-
-        if results.total and results.total != results.skipped_configs:
-            pass_rate = (float(results.passed) / float(results.total - results.skipped_configs))
+        if results.total and results.total != results.skipped_runtime:
+            pass_rate = (float(results.passed) / float(results.total - results.skipped_runtime))
         else:
             pass_rate = 0
 
         logger.info(
-            "{}{} of {}{} test configurations passed ({:.2%}), {}{}{} failed, {}{}{} errored, {} skipped with {}{}{} warnings in {:.2f} seconds".format(
+            "{}{} of {}{} test configurations passed ({:.2%}), {}{}{} failed, {}{}{} errored, {} not run, {}{}{} warnings in {:.2f} seconds".format(
                 Fore.RED if failed else Fore.GREEN,
                 results.passed,
-                results.total,
+                results.total - results.skipped_runtime,
                 Fore.RESET,
                 pass_rate,
                 Fore.RED if results.failed else Fore.RESET,
@@ -476,24 +477,30 @@ class Reporting:
                 Fore.RED if results.error else Fore.RESET,
                 results.error,
                 Fore.RESET,
-                results.skipped_configs,
+                results.notrun,
                 Fore.YELLOW if self.plan.warnings else Fore.RESET,
                 self.plan.warnings,
                 Fore.RESET,
                 duration))
 
         total_platforms = len(self.platforms)
-        # if we are only building, do not report about tests being executed.
-        if self.platforms and not self.env.options.build_only:
-            logger.info("In total {} test cases were executed, {} skipped on {} out of total {} platforms ({:02.2f}%)".format(
-                results.cases - results.skipped_cases,
-                results.skipped_cases,
-                len(self.filtered_platforms),
-                total_platforms,
-                (100 * len(self.filtered_platforms) / len(self.platforms))
-            ))
+        pass_rate = 0
+        if results.cases:
+            pass_rate = (float(results.cases_passed) / float(results.cases))
+        logger.info("{} of {} test cases passed ({:.2%}), {} failed, {} not run, {} blocked, {} skipped on {} out of total {} platforms ({:02.2f}%)".format(
+            results.cases_passed,
+            results.cases,
+            pass_rate,
+            results.cases_failed,
+            results.cases_notrun,
+            results.cases_blocked,
+            results.cases_skipped,
+            len(self.filtered_platforms),
+            total_platforms,
+            (100 * len(self.filtered_platforms) / len(self.platforms))
+        ))
 
-        built_only = results.total - run - results.skipped_configs
+        run = results.total - built_only - results.skipped_runtime
         logger.info(f"{Fore.GREEN}{run}{Fore.RESET} test configurations executed on platforms, \
 {Fore.RED}{built_only}{Fore.RESET} test configurations were only built.")
 

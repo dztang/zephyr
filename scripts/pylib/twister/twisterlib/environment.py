@@ -458,6 +458,10 @@ structure in the main Zephyr tree: boards/<arch>/<board_name>/""")
              "The '--clobber-output' option controls what cleaning does.")
 
     parser.add_argument(
+        "--report-summary", action="store_true",
+        help="Show failed/error report from latest run")
+
+    parser.add_argument(
         "-o", "--report-dir",
         help="""Output reports containing results of the test run into the
         specified directory.
@@ -468,6 +472,8 @@ structure in the main Zephyr tree: boards/<arch>/<board_name>/""")
     parser.add_argument("--overflow-as-errors", action="store_true",
                         help="Treat RAM/SRAM overflows as errors.")
 
+    parser.add_argument("--report-filtered", action="store_true",
+                        help="Report filtered tests.")
 
     parser.add_argument("-P", "--exclude-platform", action="append", default=[],
             help="""Exclude platforms and do not build or run any tests

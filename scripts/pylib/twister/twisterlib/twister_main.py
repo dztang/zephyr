@@ -19,6 +19,7 @@ from twisterlib.coverage import run_coverage
 from twisterlib.runner import TwisterRunner
 from twisterlib.environment import TwisterEnv
 from twisterlib.package import Artifacts
+from twisterlib.testsuite import Status
 
 logger = logging.getLogger("twister")
 logger.setLevel(logging.DEBUG)
@@ -73,7 +74,7 @@ def main(options):
 
     previous_results = None
     # Cleanup
-    if options.no_clean or options.only_failed or options.test_only:
+    if options.no_clean or options.only_failed or options.test_only or options.report_summary:
         if os.path.exists(options.outdir):
             print("Keeping artifacts untouched")
     elif options.last_metrics:
@@ -142,7 +143,7 @@ def main(options):
         # command line
 
         for i in tplan.instances.values():
-            if i.status == "filtered":
+            if i.status == Status.FILTER:
                 if options.platform and i.platform.name not in options.platform:
                     continue
                 logger.debug(
@@ -180,6 +181,10 @@ def main(options):
 
     if options.short_build_path:
         tplan.create_build_dir_links()
+
+    if options.report_summary:
+        report.synopsis(0)
+        return 0
 
     runner = TwisterRunner(tplan.instances, tplan.testsuites, env)
     runner.duts = hwm.duts
