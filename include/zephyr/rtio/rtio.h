@@ -31,7 +31,7 @@
 #include <zephyr/app_memory/app_memdomain.h>
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
-#include <zephyr/rtio/rtio_mpsc.h>
+#include <zephyr/sys/mpsc_lockfree.h>
 #include <zephyr/sys/__assert.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/mem_blocks.h>
@@ -41,7 +41,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /**
  * @brief RTIO
@@ -76,7 +75,6 @@ extern "C" {
  * @}
  */
 
-
 /**
  * @brief RTIO SQE Flags
  * @defgroup rtio_sqe_flags RTIO SQE Flags
@@ -104,7 +102,6 @@ extern "C" {
  * that will be returned in a single completion on failure/success.
  */
 #define RTIO_SQE_TRANSACTION BIT(1)
-
 
 /**
  * @brief The buffer should be allocated by the RTIO mempool
@@ -254,13 +251,13 @@ struct rtio_sqe {
 		/** OP_TX, OP_RX */
 		struct {
 			uint32_t buf_len; /**< Length of buffer */
-			uint8_t *buf; /**< Buffer to use*/
+			uint8_t *buf;     /**< Buffer to use*/
 		};
 
 		/** OP_TINY_TX */
 		struct {
 			uint8_t tiny_buf_len; /**< Length of tiny buffer */
-			uint8_t tiny_buf[7]; /**< Tiny buffer */
+			uint8_t tiny_buf[7];  /**< Tiny buffer */
 		};
 
 		/** OP_CALLBACK */
@@ -275,7 +272,6 @@ struct rtio_sqe {
 			uint8_t *tx_buf;
 			uint8_t *rx_buf;
 		};
-
 	};
 };
 
@@ -288,7 +284,7 @@ BUILD_ASSERT(sizeof(struct rtio_sqe) <= 64);
  * @brief A completion queue event
  */
 struct rtio_cqe {
-	struct rtio_mpsc_node q;
+	struct mpsc_node q;
 
 	int32_t result; /**< Result from operation */
 	void *userdata; /**< Associated userdata with operation */
@@ -296,14 +292,14 @@ struct rtio_cqe {
 };
 
 struct rtio_sqe_pool {
-	struct rtio_mpsc free_q;
+	struct mpsc free_q;
 	const uint16_t pool_size;
 	uint16_t pool_free;
 	struct rtio_iodev_sqe *pool;
 };
 
 struct rtio_cqe_pool {
-	struct rtio_mpsc free_q;
+	struct mpsc free_q;
 	const uint16_t pool_size;
 	uint16_t pool_free;
 	struct rtio_cqe *pool;
@@ -358,10 +354,10 @@ struct rtio {
 #endif
 
 	/* Submission queue */
-	struct rtio_mpsc sq;
+	struct mpsc sq;
 
 	/* Completion queue */
-	struct rtio_mpsc cq;
+	struct mpsc cq;
 };
 
 /** The memory partition associated with all RTIO context information */
@@ -418,7 +414,7 @@ static inline uint16_t __rtio_compute_mempool_block_index(const struct rtio *r, 
  */
 struct rtio_iodev_sqe {
 	struct rtio_sqe sqe;
-	struct rtio_mpsc_node q;
+	struct mpsc_node q;
 	struct rtio_iodev_sqe *next;
 	struct rtio *r;
 };
@@ -446,7 +442,7 @@ struct rtio_iodev {
 	const struct rtio_iodev_api *api;
 
 	/* Queue of RTIO contexts with requests */
-	struct rtio_mpsc iodev_sq;
+	struct mpsc iodev_sq;
 
 	/* Data associated with this iodev */
 	void *data;
@@ -456,27 +452,25 @@ struct rtio_iodev {
 #define RTIO_OP_NOP 0
 
 /** An operation that receives (reads) */
-#define RTIO_OP_RX (RTIO_OP_NOP+1)
+#define RTIO_OP_RX (RTIO_OP_NOP + 1)
 
 /** An operation that transmits (writes) */
-#define RTIO_OP_TX (RTIO_OP_RX+1)
+#define RTIO_OP_TX (RTIO_OP_RX + 1)
 
 /** An operation that transmits tiny writes by copying the data to write */
-#define RTIO_OP_TINY_TX (RTIO_OP_TX+1)
+#define RTIO_OP_TINY_TX (RTIO_OP_TX + 1)
 
 /** An operation that calls a given function (callback) */
-#define RTIO_OP_CALLBACK (RTIO_OP_TINY_TX+1)
+#define RTIO_OP_CALLBACK (RTIO_OP_TINY_TX + 1)
 
 /** An operation that transceives (reads and writes simultaneously) */
-#define RTIO_OP_TXRX (RTIO_OP_CALLBACK+1)
-
+#define RTIO_OP_TXRX (RTIO_OP_CALLBACK + 1)
 
 /**
  * @brief Prepare a nop (no op) submission
  */
-static inline void rtio_sqe_prep_nop(struct rtio_sqe *sqe,
-				const struct rtio_iodev *iodev,
-				void *userdata)
+static inline void rtio_sqe_prep_nop(struct rtio_sqe *sqe, const struct rtio_iodev *iodev,
+				     void *userdata)
 {
 	memset(sqe, 0, sizeof(struct rtio_sqe));
 	sqe->op = RTIO_OP_NOP;
@@ -487,12 +481,8 @@ static inline void rtio_sqe_prep_nop(struct rtio_sqe *sqe,
 /**
  * @brief Prepare a read op submission
  */
-static inline void rtio_sqe_prep_read(struct rtio_sqe *sqe,
-				      const struct rtio_iodev *iodev,
-				      int8_t prio,
-				      uint8_t *buf,
-				      uint32_t len,
-				      void *userdata)
+static inline void rtio_sqe_prep_read(struct rtio_sqe *sqe, const struct rtio_iodev *iodev,
+				      int8_t prio, uint8_t *buf, uint32_t len, void *userdata)
 {
 	memset(sqe, 0, sizeof(struct rtio_sqe));
 	sqe->op = RTIO_OP_RX;
@@ -527,12 +517,8 @@ static inline void rtio_sqe_prep_read_multishot(struct rtio_sqe *sqe,
 /**
  * @brief Prepare a write op submission
  */
-static inline void rtio_sqe_prep_write(struct rtio_sqe *sqe,
-				       const struct rtio_iodev *iodev,
-				       int8_t prio,
-				       uint8_t *buf,
-				       uint32_t len,
-				       void *userdata)
+static inline void rtio_sqe_prep_write(struct rtio_sqe *sqe, const struct rtio_iodev *iodev,
+				       int8_t prio, uint8_t *buf, uint32_t len, void *userdata)
 {
 	memset(sqe, 0, sizeof(struct rtio_sqe));
 	sqe->op = RTIO_OP_TX;
@@ -553,12 +539,9 @@ static inline void rtio_sqe_prep_write(struct rtio_sqe *sqe,
  * This is useful in many scenarios with RTL logic where a write of the register to
  * subsequently read must be done.
  */
-static inline void rtio_sqe_prep_tiny_write(struct rtio_sqe *sqe,
-					    const struct rtio_iodev *iodev,
-					    int8_t prio,
-					    const uint8_t *tiny_write_data,
-					    uint8_t tiny_write_len,
-					    void *userdata)
+static inline void rtio_sqe_prep_tiny_write(struct rtio_sqe *sqe, const struct rtio_iodev *iodev,
+					    int8_t prio, const uint8_t *tiny_write_data,
+					    uint8_t tiny_write_len, void *userdata)
 {
 	__ASSERT_NO_MSG(tiny_write_len <= sizeof(sqe->tiny_buf));
 
@@ -579,10 +562,8 @@ static inline void rtio_sqe_prep_tiny_write(struct rtio_sqe *sqe,
  * Used where general purpose logic is required in a queue of io operations to do
  * transforms or logic.
  */
-static inline void rtio_sqe_prep_callback(struct rtio_sqe *sqe,
-					  rtio_callback_t callback,
-					  void *arg0,
-					  void *userdata)
+static inline void rtio_sqe_prep_callback(struct rtio_sqe *sqe, rtio_callback_t callback,
+					  void *arg0, void *userdata)
 {
 	memset(sqe, 0, sizeof(struct rtio_sqe));
 	sqe->op = RTIO_OP_CALLBACK;
@@ -596,13 +577,9 @@ static inline void rtio_sqe_prep_callback(struct rtio_sqe *sqe,
 /**
  * @brief Prepare a transceive op submission
  */
-static inline void rtio_sqe_prep_transceive(struct rtio_sqe *sqe,
-					    const struct rtio_iodev *iodev,
-					    int8_t prio,
-					    uint8_t *tx_buf,
-					    uint8_t *rx_buf,
-					    uint32_t buf_len,
-					    void *userdata)
+static inline void rtio_sqe_prep_transceive(struct rtio_sqe *sqe, const struct rtio_iodev *iodev,
+					    int8_t prio, uint8_t *tx_buf, uint8_t *rx_buf,
+					    uint32_t buf_len, void *userdata)
 {
 	memset(sqe, 0, sizeof(struct rtio_sqe));
 	sqe->op = RTIO_OP_TXRX;
@@ -616,7 +593,7 @@ static inline void rtio_sqe_prep_transceive(struct rtio_sqe *sqe,
 
 static inline struct rtio_iodev_sqe *rtio_sqe_pool_alloc(struct rtio_sqe_pool *pool)
 {
-	struct rtio_mpsc_node *node = rtio_mpsc_pop(&pool->free_q);
+	struct mpsc_node *node = mpsc_pop(&pool->free_q);
 
 	if (node == NULL) {
 		return NULL;
@@ -631,14 +608,14 @@ static inline struct rtio_iodev_sqe *rtio_sqe_pool_alloc(struct rtio_sqe_pool *p
 
 static inline void rtio_sqe_pool_free(struct rtio_sqe_pool *pool, struct rtio_iodev_sqe *iodev_sqe)
 {
-	rtio_mpsc_push(&pool->free_q, &iodev_sqe->q);
+	mpsc_push(&pool->free_q, &iodev_sqe->q);
 
 	pool->pool_free++;
 }
 
 static inline struct rtio_cqe *rtio_cqe_pool_alloc(struct rtio_cqe_pool *pool)
 {
-	struct rtio_mpsc_node *node = rtio_mpsc_pop(&pool->free_q);
+	struct mpsc_node *node = mpsc_pop(&pool->free_q);
 
 	if (node == NULL) {
 		return NULL;
@@ -655,13 +632,13 @@ static inline struct rtio_cqe *rtio_cqe_pool_alloc(struct rtio_cqe_pool *pool)
 
 static inline void rtio_cqe_pool_free(struct rtio_cqe_pool *pool, struct rtio_cqe *cqe)
 {
-	rtio_mpsc_push(&pool->free_q, &cqe->q);
+	mpsc_push(&pool->free_q, &cqe->q);
 
 	pool->pool_free++;
 }
 
-static inline int rtio_block_pool_alloc(struct rtio *r, size_t min_sz,
-					  size_t max_sz, uint8_t **buf, uint32_t *buf_len)
+static inline int rtio_block_pool_alloc(struct rtio *r, size_t min_sz, size_t max_sz, uint8_t **buf,
+					uint32_t *buf_len)
 {
 #ifndef CONFIG_RTIO_SYS_MEM_BLOCKS
 	ARG_UNUSED(r);
@@ -719,14 +696,14 @@ static inline void rtio_block_pool_free(struct rtio *r, void *buf, uint32_t buf_
 #define RTIO_IODEV_DEFINE(name, iodev_api, iodev_data)		\
 	STRUCT_SECTION_ITERABLE(rtio_iodev, name) = {		\
 		.api = (iodev_api),				\
-		.iodev_sq = RTIO_MPSC_INIT((name.iodev_sq)),	\
+		.iodev_sq = MPSC_INIT((name.iodev_sq)),	\
 		.data = (iodev_data),				\
 	}
 
 #define Z_RTIO_SQE_POOL_DEFINE(name, sz)			\
 	static struct rtio_iodev_sqe _sqe_pool_##name[sz];	\
 	STRUCT_SECTION_ITERABLE(rtio_sqe_pool, name) = {	\
-		.free_q = RTIO_MPSC_INIT((name.free_q)),	\
+		.free_q = MPSC_INIT((name.free_q)),	\
 		.pool_size = sz,				\
 		.pool_free = sz,				\
 		.pool = _sqe_pool_##name,			\
@@ -736,7 +713,7 @@ static inline void rtio_block_pool_free(struct rtio *r, void *buf, uint32_t buf_
 #define Z_RTIO_CQE_POOL_DEFINE(name, sz)			\
 	static struct rtio_cqe _cqe_pool_##name[sz];		\
 	STRUCT_SECTION_ITERABLE(rtio_cqe_pool, name) = {	\
-		.free_q = RTIO_MPSC_INIT((name.free_q)),	\
+		.free_q = MPSC_INIT((name.free_q)),	\
 		.pool_size = sz,				\
 		.pool_free = sz,				\
 		.pool = _cqe_pool_##name,			\
@@ -784,8 +761,8 @@ static inline void rtio_block_pool_free(struct rtio *r, void *buf, uint32_t buf_
 		.sqe_pool = _sqe_pool,                                                             \
 		.cqe_pool = _cqe_pool,                                                             \
 		IF_ENABLED(CONFIG_RTIO_SYS_MEM_BLOCKS, (.block_pool = _block_pool,))               \
-		.sq = RTIO_MPSC_INIT((name.sq)),                                                   \
-		.cq = RTIO_MPSC_INIT((name.cq)),                                                   \
+		.sq = MPSC_INIT((name.sq)),                                                   \
+		.cq = MPSC_INIT((name.cq)),                                                   \
 	}
 
 /**
@@ -798,7 +775,7 @@ static inline void rtio_block_pool_free(struct rtio *r, void *buf, uint32_t buf_
 #define RTIO_DEFINE(name, sq_sz, cq_sz)					\
 	Z_RTIO_SQE_POOL_DEFINE(name##_sqe_pool, sq_sz);			\
 	Z_RTIO_CQE_POOL_DEFINE(name##_cqe_pool, cq_sz);			\
-	Z_RTIO_DEFINE(name, &name##_sqe_pool, &name##_cqe_pool, NULL)	\
+	Z_RTIO_DEFINE(name, &name##_sqe_pool, &name##_cqe_pool, NULL)
 
 /* clang-format on */
 
@@ -812,10 +789,10 @@ static inline void rtio_block_pool_free(struct rtio *r, void *buf, uint32_t buf_
  * @param blk_size The number of bytes in each block
  * @param balign The block alignment
  */
-#define RTIO_DEFINE_WITH_MEMPOOL(name, sq_sz, cq_sz, num_blks, blk_size, balign) \
-	Z_RTIO_SQE_POOL_DEFINE(name##_sqe_pool, sq_sz);		\
-	Z_RTIO_CQE_POOL_DEFINE(name##_cqe_pool, cq_sz);			\
-	Z_RTIO_BLOCK_POOL_DEFINE(name##_block_pool, blk_size, num_blks, balign); \
+#define RTIO_DEFINE_WITH_MEMPOOL(name, sq_sz, cq_sz, num_blks, blk_size, balign)                   \
+	Z_RTIO_SQE_POOL_DEFINE(name##_sqe_pool, sq_sz);                                            \
+	Z_RTIO_CQE_POOL_DEFINE(name##_cqe_pool, cq_sz);                                            \
+	Z_RTIO_BLOCK_POOL_DEFINE(name##_block_pool, blk_size, num_blks, balign);                   \
 	Z_RTIO_DEFINE(name, &name##_sqe_pool, &name##_cqe_pool, &name##_block_pool)
 
 /* clang-format on */
@@ -848,7 +825,6 @@ static inline struct rtio_iodev_sqe *rtio_txn_next(const struct rtio_iodev_sqe *
 		return NULL;
 	}
 }
-
 
 /**
  * @brief Get the next sqe in the chain
@@ -896,7 +872,7 @@ static inline struct rtio_sqe *rtio_sqe_acquire(struct rtio *r)
 		return NULL;
 	}
 
-	rtio_mpsc_push(&r->sq, &iodev_sqe->q);
+	mpsc_push(&r->sq, &iodev_sqe->q);
 
 	return &iodev_sqe->sqe;
 }
@@ -909,12 +885,12 @@ static inline struct rtio_sqe *rtio_sqe_acquire(struct rtio *r)
 static inline void rtio_sqe_drop_all(struct rtio *r)
 {
 	struct rtio_iodev_sqe *iodev_sqe;
-	struct rtio_mpsc_node *node = rtio_mpsc_pop(&r->sq);
+	struct mpsc_node *node = mpsc_pop(&r->sq);
 
 	while (node != NULL) {
 		iodev_sqe = CONTAINER_OF(node, struct rtio_iodev_sqe, q);
 		rtio_sqe_pool_free(r->sqe_pool, iodev_sqe);
-		node = rtio_mpsc_pop(&r->sq);
+		node = mpsc_pop(&r->sq);
 	}
 }
 
@@ -939,7 +915,7 @@ static inline struct rtio_cqe *rtio_cqe_acquire(struct rtio *r)
  */
 static inline void rtio_cqe_produce(struct rtio *r, struct rtio_cqe *cqe)
 {
-	rtio_mpsc_push(&r->cq, &cqe->q);
+	mpsc_push(&r->cq, &cqe->q);
 }
 
 /**
@@ -955,7 +931,7 @@ static inline void rtio_cqe_produce(struct rtio *r, struct rtio_cqe *cqe)
  */
 static inline struct rtio_cqe *rtio_cqe_consume(struct rtio *r)
 {
-	struct rtio_mpsc_node *node;
+	struct mpsc_node *node;
 	struct rtio_cqe *cqe = NULL;
 
 #ifdef CONFIG_RTIO_CONSUME_SEM
@@ -964,7 +940,7 @@ static inline struct rtio_cqe *rtio_cqe_consume(struct rtio *r)
 	}
 #endif
 
-	node = rtio_mpsc_pop(&r->cq);
+	node = mpsc_pop(&r->cq);
 	if (node == NULL) {
 		return NULL;
 	}
@@ -985,16 +961,16 @@ static inline struct rtio_cqe *rtio_cqe_consume(struct rtio *r)
  */
 static inline struct rtio_cqe *rtio_cqe_consume_block(struct rtio *r)
 {
-	struct rtio_mpsc_node *node;
+	struct mpsc_node *node;
 	struct rtio_cqe *cqe;
 
 #ifdef CONFIG_RTIO_CONSUME_SEM
 	k_sem_take(r->consume_sem, K_FOREVER);
 #endif
-	node = rtio_mpsc_pop(&r->cq);
+	node = mpsc_pop(&r->cq);
 	while (node == NULL) {
 		Z_SPIN_DELAY(1);
-		node = rtio_mpsc_pop(&r->cq);
+		node = mpsc_pop(&r->cq);
 	}
 	cqe = CONTAINER_OF(node, struct rtio_cqe, q);
 
@@ -1026,8 +1002,8 @@ static inline uint32_t rtio_cqe_compute_flags(struct rtio_iodev_sqe *iodev_sqe)
 	if (iodev_sqe->sqe.op == RTIO_OP_RX && iodev_sqe->sqe.flags & RTIO_SQE_MEMPOOL_BUFFER) {
 		struct rtio *r = iodev_sqe->r;
 		struct sys_mem_blocks *mem_pool = r->block_pool;
-		int blk_index = (iodev_sqe->sqe.buf - mem_pool->buffer) >>
-				mem_pool->info.blk_sz_shift;
+		int blk_index =
+			(iodev_sqe->sqe.buf - mem_pool->buffer) >> mem_pool->info.blk_sz_shift;
 		int blk_count = iodev_sqe->sqe.buf_len >> mem_pool->info.blk_sz_shift;
 
 		flags = RTIO_CQE_FLAG_PREP_MEMPOOL(blk_index, blk_count);
@@ -1122,13 +1098,13 @@ static inline void rtio_iodev_sqe_err(struct rtio_iodev_sqe *iodev_sqe, int resu
 static inline void rtio_iodev_cancel_all(struct rtio_iodev *iodev)
 {
 	/* Clear pending requests as -ENODATA */
-	struct rtio_mpsc_node *node = rtio_mpsc_pop(&iodev->iodev_sq);
+	struct mpsc_node *node = mpsc_pop(&iodev->iodev_sq);
 
 	while (node != NULL) {
 		struct rtio_iodev_sqe *iodev_sqe = CONTAINER_OF(node, struct rtio_iodev_sqe, q);
 
 		rtio_iodev_sqe_err(iodev_sqe, -ECANCELED);
-		node = rtio_mpsc_pop(&iodev->iodev_sq);
+		node = mpsc_pop(&iodev->iodev_sq);
 	}
 }
 
@@ -1314,8 +1290,7 @@ __syscall int rtio_sqe_copy_in_get_handles(struct rtio *r, const struct rtio_sqe
 					   struct rtio_sqe **handle, size_t sqe_count);
 
 static inline int z_impl_rtio_sqe_copy_in_get_handles(struct rtio *r, const struct rtio_sqe *sqes,
-						      struct rtio_sqe **handle,
-						      size_t sqe_count)
+						      struct rtio_sqe **handle, size_t sqe_count)
 {
 	struct rtio_sqe *sqe;
 	uint32_t acquirable = rtio_sqe_acquirable(r);
@@ -1372,13 +1347,9 @@ static inline int rtio_sqe_copy_in(struct rtio *r, const struct rtio_sqe *sqes, 
  *
  * @retval copy_count Count of copied CQEs (0 to cqe_count)
  */
-__syscall int rtio_cqe_copy_out(struct rtio *r,
-				struct rtio_cqe *cqes,
-				size_t cqe_count,
+__syscall int rtio_cqe_copy_out(struct rtio *r, struct rtio_cqe *cqes, size_t cqe_count,
 				k_timeout_t timeout);
-static inline int z_impl_rtio_cqe_copy_out(struct rtio *r,
-					   struct rtio_cqe *cqes,
-					   size_t cqe_count,
+static inline int z_impl_rtio_cqe_copy_out(struct rtio *r, struct rtio_cqe *cqes, size_t cqe_count,
 					   k_timeout_t timeout)
 {
 	size_t copied = 0;
@@ -1441,7 +1412,6 @@ static inline int z_impl_rtio_submit(struct rtio *r, uint32_t wait_count)
 	 * and produces completions through ISR chains or other means.
 	 */
 	rtio_executor_submit(r);
-
 
 	/* TODO could be nicer if we could suspend the thread and not
 	 * wake up on each completion here.

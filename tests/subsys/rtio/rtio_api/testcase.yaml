@@ -1,5 +1,5 @@
 common:
-  platform_exclude: m2gl025_miv
+  platform_exclude: m2gl025_miv m5stack_core2
   platform_key:
     - arch
     - simulation

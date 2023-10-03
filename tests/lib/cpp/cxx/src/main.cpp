@@ -80,8 +80,8 @@
 
 /* Add RTIO headers to make sure they're CXX compatible */
 #include <zephyr/rtio/rtio.h>
-#include <zephyr/rtio/rtio_spsc.h>
-#include <zephyr/rtio/rtio_mpsc.h>
+#include <zephyr/lockfree/spsc.h>
+#include <zephyr/lockfree/mpsc.h>
 
 #include <zephyr/ztest.h>
 
