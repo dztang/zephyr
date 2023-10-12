@@ -1052,12 +1052,25 @@ class ProjectBuilder(FilterBuilder):
             if self.options.extra_test_args and instance.platform.arch == "posix":
                 instance.handler.extra_test_args = self.options.extra_test_args
 
+            if instance.testsuite.debug_harness is not None and instance.testsuite.debug_harness:
+                debug_harness = HarnessImporter.get_harness(instance.testsuite.debug_harness.capitalize())
+                debug_harness.configure(instance, config_name = "debug_harness_config")
+                debug_harness.start(timeout = instance.handler.get_test_timeout())
+            else:
+                debug_harness = None
+
             harness = HarnessImporter.get_harness(instance.testsuite.harness.capitalize())
-            harness.configure(instance)
+            harness.configure(instance, config_name = "harness_config")
+            harness.start(timeout = instance.handler.get_test_timeout())
+
             if isinstance(harness, Pytest):
                 harness.pytest_run(instance.handler.get_test_timeout())
             else:
                 instance.handler.handle(harness)
+
+            harness.end()
+            if debug_harness is not None:
+                debug_harness.end()
 
         sys.stdout.flush()
 
