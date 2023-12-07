@@ -39,6 +39,35 @@ Build System
 * Build type by setting ``CONF_FILE`` to ``prj_<build>.conf`` is now deprecated, users should
   instead use the new ``-DFILE_SUFFIX`` feature :ref:`application-file-suffixes`.
 
+* The following build-time generated headers:
+
+  .. list-table::
+     :header-rows: 1
+
+     * - Affected header files
+     * - ``app_version``
+     * - ``cmake_intdef``
+     * - ``core-isa-dM``
+     * - ``devicetree_generated``
+     * - ``driver-validation``
+     * - ``kobj-types-enum``
+     * - ``linker-kobject-prebuilt-data``
+     * - ``mcuboot_version``
+     * - ``offsets``
+     * - ``otype-to-size``
+     * - ``otype-to-str``
+     * - ``strerror_table``
+     * - ``strsignal_table``
+     * - ``syscall_list``
+     * - ``version``
+     * - ``zsr``
+
+  and syscall headers are now namespaced into the ``zephyr/`` folder. The change is largely
+  automated, and the script can be found in :github:`63973`.
+  For the time being, :kconfig:option:`CONFIG_LEGACY_GENERATED_INCLUDE_PATH`, is enabled by
+  default so that downstream application will continue to compile, but it will be deprecated in the
+  future and developers are advised to update the include paths as soon as possible.
+
 Kernel
 ======
 
