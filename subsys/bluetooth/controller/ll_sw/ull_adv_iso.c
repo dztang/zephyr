@@ -389,7 +389,7 @@ ll_big_create_rtn_retry:
 					    event_spacing_max);
 		lll_adv_iso->nse += lll_adv_iso->ptc;
 		lll_adv_iso->sub_interval = lll_adv_iso->bis_spacing *
-					    lll_adv_iso->nse;
+					    lll_adv_iso->num_bis;
 	} else {
 		/* Sequential Packing */
 		lll_adv_iso->ptc = ptc_calc(lll_adv_iso, event_spacing,
