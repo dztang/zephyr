@@ -381,20 +381,19 @@ ll_big_create_rtn_retry:
 		return BT_HCI_ERR_INVALID_PARAM;
 	}
 
+	/* Calculate pre-transmissions count */
+	lll_adv_iso->ptc = ptc_calc(lll_adv_iso, event_spacing,
+				    event_spacing_max);
+	lll_adv_iso->nse += lll_adv_iso->ptc;
+
 	/* Based on packing requested, sequential or interleaved */
 	if (packing) {
 		/* Interleaved Packing */
 		lll_adv_iso->bis_spacing = lll_adv_iso->sub_interval;
-		lll_adv_iso->ptc = ptc_calc(lll_adv_iso, event_spacing,
-					    event_spacing_max);
-		lll_adv_iso->nse += lll_adv_iso->ptc;
 		lll_adv_iso->sub_interval = lll_adv_iso->bis_spacing *
 					    lll_adv_iso->num_bis;
 	} else {
 		/* Sequential Packing */
-		lll_adv_iso->ptc = ptc_calc(lll_adv_iso, event_spacing,
-					    event_spacing_max);
-		lll_adv_iso->nse += lll_adv_iso->ptc;
 		lll_adv_iso->bis_spacing = lll_adv_iso->sub_interval *
 					   lll_adv_iso->nse;
 	}
