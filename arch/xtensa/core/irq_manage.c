@@ -31,7 +31,7 @@ LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
  * interrupts are locked system-wide, so care must be taken when using them.
  * ISR installed with priority 0 interrupts cannot make kernel calls.
  */
-void z_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void arch_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
 {
 	__ASSERT(prio < XCHAL_EXCM_LEVEL + 1,
 		 "invalid priority %d! values must be less than %d\n",
@@ -58,7 +58,7 @@ int z_arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
 			       void (*routine)(const void *parameter),
 			       const void *parameter, uint32_t flags)
 {
-	return z_soc_irq_connect_dynamic(irq, priority, routine, parameter,
+	return platform_irq_connect_dynamic(irq, priority, routine, parameter,
 					 flags);
 }
 #endif /* !CONFIG_MULTI_LEVEL_INTERRUPTS */

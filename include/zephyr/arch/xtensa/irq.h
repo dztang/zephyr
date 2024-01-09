@@ -10,6 +10,7 @@
 
 #include <zephyr/toolchain.h>
 #include <xtensa/config/core-isa.h>
+#include <zephyr/sys/util_macro.h>
 
 #define CONFIG_GEN_IRQ_START_VECTOR 0
 
@@ -83,18 +84,17 @@ static inline void z_xt_set_intset(unsigned int arg)
 #define CONFIG_NUM_IRQS XCHAL_NUM_INTERRUPTS
 #endif /* CONFIG_2ND_LEVEL_INTERRUPTS */
 
-void z_soc_irq_init(void);
-void z_soc_irq_enable(unsigned int irq);
-void z_soc_irq_disable(unsigned int irq);
-int z_soc_irq_is_enabled(unsigned int irq);
+void platform_irq_enable(unsigned int irq);
+void platform_irq_disable(unsigned int irq);
+int platform_irq_is_enabled(unsigned int irq);
 
-#define arch_irq_enable(irq)	z_soc_irq_enable(irq)
-#define arch_irq_disable(irq)	z_soc_irq_disable(irq)
+#define arch_irq_enable(irq)	platform_irq_enable(irq)
+#define arch_irq_disable(irq)	platform_irq_disable(irq)
 
-#define arch_irq_is_enabled(irq)	z_soc_irq_is_enabled(irq)
+#define arch_irq_is_enabled(irq)	platform_irq_is_enabled(irq)
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-extern int z_soc_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+extern int platform_irq_connect_dynamic(unsigned int irq, unsigned int priority,
 				     void (*routine)(const void *parameter),
 				     const void *parameter, uint32_t flags);
 #endif
@@ -117,7 +117,7 @@ extern int z_soc_irq_connect_dynamic(unsigned int irq, unsigned int priority,
  */
 static ALWAYS_INLINE void xtensa_irq_enable(uint32_t irq)
 {
-	z_xt_ints_on(1 << irq);
+	z_xt_ints_on(BIT(irq));
 }
 
 /**
@@ -127,7 +127,7 @@ static ALWAYS_INLINE void xtensa_irq_enable(uint32_t irq)
  */
 static ALWAYS_INLINE void xtensa_irq_disable(uint32_t irq)
 {
-	z_xt_ints_off(1 << irq);
+	z_xt_ints_off(BIT(irq));
 }
 
 static ALWAYS_INLINE unsigned int arch_irq_lock(void)

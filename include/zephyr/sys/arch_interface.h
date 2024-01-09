@@ -310,6 +310,16 @@ void arch_irq_enable(unsigned int irq);
 int arch_irq_is_enabled(unsigned int irq);
 
 /**
+ * Set IRQ number priority
+ *
+ * @param irq IRQ line number
+ * @param prio Interrupt priority
+ * @param flags Arch-specific IRQ configuration flag
+ *
+ */
+void arch_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags);
+
+/**
  * Arch-specific hook to install a dynamic interrupt.
  *
  * @param irq IRQ line number
