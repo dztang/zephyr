@@ -173,3 +173,7 @@
 &clock {
 	status = "okay";
 };
+
+&adc {
+	status = "okay";
+};
