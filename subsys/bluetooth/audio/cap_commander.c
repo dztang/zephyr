@@ -230,6 +230,155 @@ static bool valid_broadcast_reception_start_param(
 }
 #endif /* CONFIG_BT_BAP_BROADCAST_ASSISTANT */
 
+static struct bt_bap_broadcast_assistant_cb broadcast_assistant_cb;
+static bool ba_cb_registered;
+
+static void cap_commander_ba_add_src_cb(struct bt_conn *conn, int err)
+{
+	struct bt_cap_common_proc *active_proc = bt_cap_common_get_active_proc();
+	struct bt_bap_broadcast_assistant_add_src_param add_src_param = {0};
+
+	LOG_DBG("conn %p", (void *)conn);
+
+	if (!bt_cap_common_conn_in_active_proc(conn)) {
+
+		/* State change happened outside of a procedure; ignore */
+		return;
+	}
+
+	/* TODO We may have an issue with the proc_initated_cnt and proc_done_cnt not being in sync
+	 */
+	if (err != 0) {
+		LOG_DBG("Failed to add source: %d", err);
+		LOG_DBG("Aborting the proc %d %d", active_proc->proc_done_cnt,
+			active_proc->proc_initiated_cnt);
+
+		bt_cap_common_abort_proc(conn, err);
+	} else {
+		active_proc->proc_done_cnt++;
+
+		LOG_DBG("Conn %p broadcast source added (%zu/%zu streams done)", (void *)conn,
+			active_proc->proc_done_cnt, active_proc->proc_cnt);
+	}
+
+	if (bt_cap_common_proc_is_aborted()) {
+		if (bt_cap_common_proc_all_handled()) {
+			cap_commander_proc_complete();
+		}
+
+		return;
+	}
+
+	if (!bt_cap_common_proc_is_done()) {
+		const struct bt_cap_commander_proc_param *proc_param;
+
+		proc_param = &active_proc->proc_param.commander[active_proc->proc_done_cnt];
+		conn = proc_param->conn;
+		bt_addr_le_copy(&add_src_param.addr, &proc_param->broadcast_reception_start.addr);
+		add_src_param.adv_sid = proc_param->broadcast_reception_start.adv_sid;
+		add_src_param.broadcast_id = proc_param->broadcast_reception_start.broadcast_id;
+		add_src_param.pa_interval = proc_param->broadcast_reception_start.pa_interval;
+		add_src_param.num_subgroups = proc_param->broadcast_reception_start.num_subgroups;
+		memcpy(&add_src_param.subgroups[0],
+		       &proc_param->broadcast_reception_start.subgroups[0],
+		       sizeof(struct bt_bap_bass_subgroup) * add_src_param.num_subgroups);
+
+		active_proc->proc_initiated_cnt++;
+		err = bt_bap_broadcast_assistant_add_src(conn, &add_src_param);
+		if (err != 0) {
+			LOG_DBG("Failed to perform broadcast reception start for conn %p: %d",
+				(void *)conn, err);
+			bt_cap_common_abort_proc(conn, err);
+			cap_commander_proc_complete();
+		}
+	} else {
+		cap_commander_proc_complete();
+	}
+}
+
+static int cap_commander_register_ba_cb(void)
+{
+	int err = 0;
+
+	bt_bap_broadcast_assistant_register_cb(&broadcast_assistant_cb);
+	if (err != 0) {
+		LOG_DBG("Failed to register broadcast assistant callbacks: %d", err);
+
+		return -ENOEXEC;
+	}
+
+	ba_cb_registered = true;
+
+	return 0;
+}
+
+static bool valid_broadcast_reception_start_param(
+	const struct bt_cap_commander_broadcast_reception_start_param *param)
+{
+	CHECKIF(param == NULL) {
+		LOG_DBG("param is NULL");
+		return false;
+	}
+
+	CHECKIF(param->count == 0) {
+		LOG_DBG("Invalid param->count: %u", param->count);
+		return false;
+	}
+
+	CHECKIF(param->count > CONFIG_BT_MAX_CONN) {
+		LOG_DBG("param->count (%zu) is larger than CONFIG_BT_MAX_CONN (%d)", param->count,
+			CONFIG_BT_MAX_CONN);
+		return false;
+	}
+
+	CHECKIF(param->param == NULL) {
+		LOG_DBG("param->param is NULL");
+		return false;
+	}
+
+	for (size_t i = 0; i < param->count; i++) {
+		const struct bt_cap_commander_broadcast_reception_start_member_param *start_param =
+			&param->param[i];
+		const union bt_cap_set_member *member = &param->param[i].member;
+		const struct bt_cap_common_client *client =
+			bt_cap_common_get_client(param->type, member);
+
+		if (client == NULL) {
+			LOG_DBG("Invalid param->param[%zu].member", i);
+			return false;
+		}
+
+		CHECKIF(start_param->num_subgroups == 0) {
+			LOG_DBG("param->param[%d]->num_subgroups is 0", i);
+			return false;
+		}
+
+		CHECKIF(start_param->subgroups == NULL) {
+			LOG_DBG("param->param[%d]->subgroup is NULL", i);
+			return false;
+		}
+
+		for (size_t j = 0U; j < start_param->num_subgroups; j++) {
+			CHECKIF(start_param->subgroups[j].bis_sync == 0) {
+				LOG_DBG("param->param[%zu].subgroup[%zu].bis_sync is 0", i, j);
+			}
+		}
+
+		for (size_t j = 0U; j < i; j++) {
+			const union bt_cap_set_member *other = &param->param[j].member;
+
+			if (other == member) {
+				LOG_DBG("param->members[%zu] (%p) is duplicated by "
+					"param->members[%zu] (%p)",
+					j, other, i, member);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 int bt_cap_commander_broadcast_reception_start(
 	const struct bt_cap_commander_broadcast_reception_start_param *param)
 {
@@ -317,7 +466,90 @@ int bt_cap_commander_broadcast_reception_start(
 
 	return 0;
 #else
-	return -ENOSYS;
+	struct bt_bap_broadcast_assistant_add_src_param add_src_param = {0};
+	const struct bt_cap_commander_proc_param *proc_param;
+	struct bt_cap_common_proc *active_proc;
+	struct bt_conn *conn;
+	int err;
+
+	if (bt_cap_common_proc_is_active()) {
+		LOG_DBG("A CAP procedure is already in progress");
+
+		return -EBUSY;
+	}
+
+	if (!valid_broadcast_reception_start_param(param)) {
+		return -EINVAL;
+	}
+
+	bt_cap_common_start_proc(BT_CAP_COMMON_PROC_TYPE_BROADCAST_RECEPTION_START, param->count);
+
+	broadcast_assistant_cb.add_src = cap_commander_ba_add_src_cb;
+	if (!ba_cb_registered && cap_commander_register_ba_cb() != 0) {
+		LOG_DBG("Failed to register VCP callbacks");
+
+		return -ENOEXEC;
+	}
+
+	active_proc = bt_cap_common_get_active_proc();
+
+	for (size_t i = 0U; i < param->count; i++) {
+		const struct bt_cap_commander_broadcast_reception_start_member_param
+			*member_param = &param->param[i];
+		struct bt_conn *member_conn =
+			bt_cap_common_get_member_conn(param->type, &member_param->member);
+
+		if (member_conn == NULL) {
+			LOG_DBG("Invalid param->members[%zu]", i);
+
+			return -EINVAL;
+		}
+
+		/* Store the necessary parameters as we cannot assume that the supplied parameters
+		 * are kept valid
+		 * TODO: consider putting this into a function
+		 */
+		active_proc->proc_param.commander[i].conn = member_conn;
+		bt_addr_le_copy(
+			&active_proc->proc_param.commander[i].broadcast_reception_start.addr,
+			&member_param->addr);
+		active_proc->proc_param.commander[i].broadcast_reception_start.adv_sid =
+			member_param->adv_sid;
+		active_proc->proc_param.commander[i].broadcast_reception_start.broadcast_id =
+			member_param->broadcast_id;
+		active_proc->proc_param.commander[i].broadcast_reception_start.pa_interval =
+			member_param->pa_interval;
+		active_proc->proc_param.commander[i].broadcast_reception_start.num_subgroups =
+			member_param->num_subgroups;
+		memcpy(&active_proc->proc_param.commander[i].broadcast_reception_start.subgroups[0],
+		       &member_param->subgroups[0],
+		       sizeof(struct bt_bap_bass_subgroup) * add_src_param.num_subgroups);
+	}
+
+	active_proc->proc_initiated_cnt++;
+
+	proc_param = &active_proc->proc_param.commander[0];
+
+	conn = proc_param->conn;
+	bt_addr_le_copy(&add_src_param.addr, &proc_param->broadcast_reception_start.addr);
+	add_src_param.adv_sid = proc_param->broadcast_reception_start.adv_sid;
+	add_src_param.broadcast_id = proc_param->broadcast_reception_start.broadcast_id;
+	add_src_param.pa_sync = true;
+	add_src_param.pa_interval = proc_param->broadcast_reception_start.pa_interval;
+	add_src_param.num_subgroups = proc_param->broadcast_reception_start.num_subgroups;
+	memcpy(&add_src_param.subgroups[0], &proc_param->broadcast_reception_start.subgroups[0],
+	       sizeof(struct bt_bap_bass_subgroup) * add_src_param.num_subgroups);
+
+	/* TODO: what to do if we are adding a source that has already been added? */
+	err = bt_bap_broadcast_assistant_add_src(conn, &add_src_param);
+	if (err != 0) {
+		LOG_DBG("Failed to start broadcast reception for conn %p: %d",
+			(void *)conn, err);
+
+		return -ENOEXEC;
+	}
+
+	return 0;
 #endif /* CONFIG_BT_BAP_BROADCAST_ASSISTANT */
 }
 
