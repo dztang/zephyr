@@ -929,7 +929,7 @@ void bt_conn_process_tx(struct bt_conn *conn)
 	err = send_buf(conn, buf);
 	net_buf_unref(buf);
 
-	if (err  == -EIO) {
+	if (err == -EIO || err == -ENOTCONN) {
 		struct bt_conn_tx *tx = tx_data(buf)->tx;
 
 		tx_data(buf)->tx = NULL;
