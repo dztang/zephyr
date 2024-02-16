@@ -58,11 +58,12 @@ static void slice_timeout(struct _timeout *timeout)
 	slice_expired[cpu] = true;
 
 	/* We need an IPI if we just handled a timeslice expiration
-	 * for a different CPU.  Ideally this would be able to target
-	 * the specific core, but that's not part of the API yet.
+	 * for a different CPU.  Ideally the underlying architecture
+	 * allows for the IPI needed for CPU <cpu> to be directed
+	 * only to it and not any other CPUs.
 	 */
-	if (IS_ENABLED(CONFIG_SMP) && cpu != _current_cpu->id) {
-		flag_ipi();
+	if (IS_ENABLED(CONFIG_SMP) && (cpu != _current_cpu->id)) {
+		flag_ipi(IPI_CPU_MASK(cpu));
 	}
 }
 

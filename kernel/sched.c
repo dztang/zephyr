@@ -34,7 +34,6 @@ static void update_cache(int preempt_ok);
 static void halt_thread(struct k_thread *thread, uint8_t new_state);
 static void add_to_waitq_locked(struct k_thread *thread, _wait_q_t *wait_q);
 
-
 BUILD_ASSERT(CONFIG_NUM_COOP_PRIORITIES >= CONFIG_NUM_METAIRQ_PRIORITIES,
 	     "You need to provide at least as many CONFIG_NUM_COOP_PRIORITIES as "
 	     "CONFIG_NUM_METAIRQ_PRIORITIES as Meta IRQs are just a special class of cooperative "
@@ -413,7 +412,8 @@ static void ready_thread(struct k_thread *thread)
 
 		queue_thread(thread);
 		update_cache(0);
-		flag_ipi();
+
+		flag_ipi(ipi_mask_create(thread));
 	}
 }
 
@@ -786,7 +786,7 @@ bool z_thread_prio_set(struct k_thread *thread, int prio)
 					 * priority of a queued thread.
 					 */
 
-					flag_ipi();
+					flag_ipi(ipi_mask_create(thread));
 				}
 			} else {
 				/*
@@ -802,7 +802,7 @@ bool z_thread_prio_set(struct k_thread *thread, int prio)
 
 				cpu = thread_active_elsewhere(thread);
 				if ((cpu != NULL) && (old_prio < prio)) {
-					flag_ipi();
+					flag_ipi(IPI_CPU_MASK(cpu->id));
 				}
 			}
 
