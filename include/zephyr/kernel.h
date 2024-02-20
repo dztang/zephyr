@@ -6113,6 +6113,14 @@ int k_thread_runtime_stats_get(k_tid_t thread,
 int k_thread_runtime_stats_all_get(k_thread_runtime_stats_t *stats);
 
 /**
+ * @brief Get the runtime statistics of all threads on this core
+ *
+ * @param stats Pointer to struct to copy statistics into.
+ * @return -EINVAL if null pointers, otherwise 0
+ */
+int k_thread_runtime_stats_my_core_get(k_thread_runtime_stats_t *stats);
+
+/**
  * @brief Enable gathering of runtime statistics for specified thread
  *
  * This routine enables the gathering of runtime statistics for the specified
