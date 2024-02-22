@@ -112,10 +112,32 @@ enum espi_channel {
  * eSPI bus event to indicate events for which user can register callbacks
  */
 enum espi_bus_event {
+	/** Indicates the eSPI bus was reset either via eSPI reset pin or in-band event.
+	 * eSPI drivers should convey the eSPI reset status to eSPI driver clients
+	 * following eSPI specification reset pin convention:
+	 * 0-eSPI bus in reset, 1-eSPI bus out-of-reset
+	 */
 	ESPI_BUS_RESET                      = BIT(0),
+
+	/** Indicates the eSPI HW has received channel enable notification from eSPI host,
+	 * once the eSPI channel is signal as ready to the eSPI host,
+	 * eSPI drivers should convey the eSPI channel ready to eSPI driver client via this event.
+	 */
 	ESPI_BUS_EVENT_CHANNEL_READY        = BIT(1),
+
+	/** Indicates the eSPI HW has received a virtual wire message from eSPI host.
+	 * eSPI drivers should convey the eSPI virtual wire latest status.
+	 */
 	ESPI_BUS_EVENT_VWIRE_RECEIVED       = BIT(2),
+
+	/** Indicates the eSPI HW has received a Out-of-band package from eSPI host.
+	 * eSPI drivers should convey the event indicating package lenght in details.
+	 */
 	ESPI_BUS_EVENT_OOB_RECEIVED         = BIT(3),
+
+	/** Indicates the eSPI HW has received a peripheral eSPI host event.
+	 * eSPI drivers should convey the peripheral type. See @espi_virtual_peripheral
+	 */
 	ESPI_BUS_PERIPHERAL_NOTIFICATION    = BIT(4),
 	ESPI_BUS_SAF_NOTIFICATION           = BIT(5),
 };
@@ -357,6 +379,10 @@ struct espi_request_packet {
  */
 struct espi_oob_packet {
 	uint8_t *buf;
+	/** For Tx packet, eSPI driver client shall specify length including total bytes
+	  * for eSPI OOB header and OOB payload.
+	  * For Rx packet, eSPI driver indicates the amount of data received
+	  */
 	uint16_t len;
 };
 
@@ -450,10 +476,17 @@ typedef int (*espi_api_flash_write)(const struct device *dev,
 				    struct espi_flash_packet *pckt);
 typedef int (*espi_api_flash_erase)(const struct device *dev,
 				    struct espi_flash_packet *pckt);
+
+/* eSPI interrupt control */
+typedef int (*espi_api_interrupt_conf)(const struct device *dev,
+				    uint32_t espi_interrupt_flags);
+
 /* Callbacks and traffic intercept */
 typedef int (*espi_api_manage_callback)(const struct device *dev,
 					struct espi_callback *callback,
 					bool set);
+
+
 
 __subsystem struct espi_driver_api {
 	espi_api_config config;
@@ -470,6 +503,7 @@ __subsystem struct espi_driver_api {
 	espi_api_flash_write flash_write;
 	espi_api_flash_erase flash_erase;
 	espi_api_manage_callback manage_callback;
+	espi_api_interrupt_conf interrupt_config;
 };
 
 /**
@@ -895,12 +929,11 @@ static inline int z_impl_espi_flash_erase(const struct device *dev,
  *    |                              |             |  eSPI reset |  eSPI host
  *    |                              |    IRQ      +<------------+  resets the
  *    |                              | <-----------+             |  bus
- *    |                              |             |             |
- *    |                              | Processed   |             |
+ *    |<-----------------------------|             |             |
+ *    | Report eSPI bus reset        | Processed   |             |
  *    |                              | within the  |             |
  *    |                              | driver      |             |
  *    |                              |             |             |
-
  *    |                              |             |  VW CH ready|  eSPI host
  *    |                              |    IRQ      +<------------+  enables VW
  *    |                              | <-----------+             |  channel
