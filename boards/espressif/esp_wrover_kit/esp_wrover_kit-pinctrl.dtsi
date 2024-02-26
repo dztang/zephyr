@@ -64,4 +64,10 @@
 		};
 	};
 
+	sdhc_slot1_default: sdhc_slot1_default {
+		group1 {
+			pinmux = <SDHC0_CD_GPIO21>;
+			bias-pull-up;
+		};
+	};
 };
