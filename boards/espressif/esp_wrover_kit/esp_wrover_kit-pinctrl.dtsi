@@ -64,4 +64,11 @@
 		};
 	};
 
+	sdio0_default: sdio0_default {
+		group1 {
+			pinmux = <SDIO0_CD_GPIO21>;
+			bias-pull-up;
+			output-high;
+		};
+	};
 };
