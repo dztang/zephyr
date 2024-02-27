@@ -30,12 +30,12 @@ struct baudrate_termios_pair {
  * @brief Lookup table for mapping the baud rate to the macro understood by termios.
  */
 static const struct baudrate_termios_pair baudrate_lut[] = {
-	{1200, B1200},       {1800, B1800},       {2400, B2400},       {4800, B4800},
-	{9600, B9600},       {19200, B19200},     {38400, B38400},     {57600, B57600},
-	{115200, B115200},   {230400, B230400},   {460800, B460800},   {500000, B500000},
-	{576000, B576000},   {921600, B921600},   {1000000, B1000000}, {1152000, B1152000},
-	{1500000, B1500000}, {2000000, B2000000}, {2500000, B2500000}, {3000000, B3000000},
-	{3500000, B3500000}, {4000000, B4000000},
+	{300, B300},         {600, B600},         {1200, B1200},       {1800, B1800},
+	{2400, B2400},       {4800, B4800},       {9600, B9600},       {19200, B19200},
+	{38400, B38400},     {57600, B57600},     {115200, B115200},   {230400, B230400},
+	{460800, B460800},   {500000, B500000},   {576000, B576000},   {921600, B921600},
+	{1000000, B1000000}, {1152000, B1152000}, {1500000, B1500000}, {2000000, B2000000},
+	{2500000, B2500000}, {3000000, B3000000}, {3500000, B3500000}, {4000000, B4000000},
 };
 
 /**
@@ -143,8 +143,7 @@ static inline void native_tty_stop_bits_set(struct termios *ter,
  * @brief Set the number of data bits in the termios structure
  *
  * @param ter
- * @param stop_bits
- *
+ * @param data_bits
  */
 static inline void native_tty_data_bits_set(struct termios *ter,
 					    enum native_tty_bottom_data_bits data_bits)
@@ -174,6 +173,92 @@ static inline void native_tty_data_bits_set(struct termios *ter,
 	ter->c_cflag |= data_bits_to_set;
 }
 
+/**
+ * @brief Get the baud rate speed from the termios structure
+ *
+ * @param ter
+ * @param baudrate
+ */
+static inline void native_tty_baud_speed_get(uint32_t *baudrate, struct termios *ter)
+{
+	speed_t termios_baudrate = cfgetispeed(ter); /* assume cfgetospeed is the same */
+
+	for (int i = 0; i < ARRAY_SIZE(baudrate_lut); i++) {
+		if (baudrate_lut[i].termios_baudrate == termios_baudrate) {
+			*baudrate = baudrate_lut[i].baudrate;
+			return;
+		}
+	}
+
+	ERROR("Could not get baudrate, as token %d (speed_t) is not supported.\n",
+	      termios_baudrate);
+}
+
+/**
+ * @brief Get parity setting in the termios structure
+ *
+ * @param parity
+ * @param ter
+ */
+static inline void native_tty_parity_get(enum native_tty_bottom_parity *parity, struct termios *ter)
+{
+	/* based on `native_tty_baud_parity_set` in reverse */
+
+	if (ter->c_cflag & PARENB) {
+		if (ter->c_cflag & PARODD) {
+			*parity = NTB_PARITY_ODD;
+		} else {
+			*parity = NTB_PARITY_EVEN;
+		}
+	} else {
+		*parity = NTB_PARITY_NONE;
+	}
+}
+
+/**
+ * @brief Get the number of stop bits in the termios structure
+ *
+ * @param stop_bits
+ * @param ter
+ */
+static inline void native_tty_stop_bits_get(enum native_tty_bottom_stop_bits *stop_bits,
+					    struct termios *ter)
+{
+	if (!(ter->c_cflag & CSTOPB)) {
+		*stop_bits = NTB_STOP_BITS_1;
+	} else {
+		*stop_bits = NTB_STOP_BITS_2;
+	}
+}
+
+/**
+ * @brief Get the number of data bits in the termios structure
+ *
+ * @param data_bits
+ * @param ter
+ */
+static inline void native_tty_data_bits_get(enum native_tty_bottom_data_bits *data_bits,
+					    struct termios *ter)
+{
+	switch (ter->c_cflag & CSIZE) {
+	case CS5:
+		*data_bits = NTB_DATA_BITS_5;
+		break;
+	case CS6:
+		*data_bits = NTB_DATA_BITS_6;
+		break;
+	case CS7:
+		*data_bits = NTB_DATA_BITS_7;
+		break;
+	case CS8:
+		*data_bits = NTB_DATA_BITS_8;
+		break;
+	default:
+		/* Anything else is not supported in termios */
+		ERROR("Could not get number of data bits.\n");
+	}
+}
+
 int native_tty_open_tty_bottom(const char *pathname)
 {
 	int fd = open(pathname, O_RDWR | O_NOCTTY);
@@ -187,7 +272,7 @@ int native_tty_open_tty_bottom(const char *pathname)
 
 int native_tty_configure_bottom(int fd, struct native_tty_bottom_cfg *cfg)
 {
-	int rc, err;
+	int rc;
 	/* Structure used to control properties of a serial port */
 	struct termios ter;
 
@@ -209,9 +294,8 @@ int native_tty_configure_bottom(int fd, struct native_tty_bottom_cfg *cfg)
 
 	rc = tcsetattr(fd, TCSANOW, &ter);
 	if (rc) {
-		err = errno;
-		WARN("Could not set serial port settings, reason: %s\n", strerror(err));
-		return err;
+		WARN("Could not set serial port settings, reason: %s\n", strerror(errno));
+		return rc;
 	}
 
 	/* tcsetattr returns success if ANY of the requested changes were successfully carried out,
@@ -222,9 +306,8 @@ int native_tty_configure_bottom(int fd, struct native_tty_bottom_cfg *cfg)
 
 	rc = tcgetattr(fd, &read_ter);
 	if (rc) {
-		err = errno;
-		WARN("Could not read serial port settings, reason: %s\n", strerror(err));
-		return err;
+		WARN("Could not read serial port settings, reason: %s\n", strerror(errno));
+		return rc;
 	}
 
 	if (ter.c_cflag != read_ter.c_cflag || ter.c_iflag != read_ter.c_iflag ||
@@ -241,6 +324,26 @@ int native_tty_configure_bottom(int fd, struct native_tty_bottom_cfg *cfg)
 		WARN("Could not flush serial port\n");
 		return rc;
 	}
+
+	return 0;
+}
+
+int native_tty_config_get_bottom(int fd, struct native_tty_bottom_cfg *cfg)
+{
+	int rc;
+	struct termios ter;
+	/* Read current terminal driver settings */
+
+	rc = tcgetattr(fd, &ter);
+	if (rc) {
+		WARN("Could not read serial port settings, reason: %s\n", strerror(errno));
+		return rc;
+	}
+
+	native_tty_baud_speed_get(&cfg->baudrate, &ter);
+	native_tty_parity_get(&cfg->parity, &ter);
+	native_tty_stop_bits_get(&cfg->stop_bits, &ter);
+	native_tty_data_bits_get(&cfg->data_bits, &ter);
 
 	return 0;
 }
