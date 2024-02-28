@@ -60,7 +60,7 @@ struct i2c_sam_twihs_dev_data {
 	struct i2c_dt_spec dt_spec;
 	struct rtio_iodev iodev;
 	struct rtio *r;
-	struct rtio_mpsc io_q;
+	struct mpsc io_q;
 	struct rtio_iodev_sqe *iodev_sqe;
 	const struct rtio_sqe *sqe;
 	uint32_t buf_idx;
@@ -221,7 +221,7 @@ static void i2c_sam_twihs_next(const struct device *dev, bool completion)
 		return;
 	}
 
-	struct rtio_mpsc_node *next = rtio_mpsc_pop(&data->io_q);
+	struct mpsc_node *next = mpsc_pop(&data->io_q);
 
 	if (next == NULL) {
 		data->iodev_sqe = NULL;
@@ -266,7 +266,7 @@ static void i2c_sam_twihs_submit(const struct device *dev, struct rtio_iodev_sqe
 {
 	struct i2c_sam_twihs_dev_data *const dev_data = dev->data;
 
-	rtio_mpsc_push(&dev_data->io_q, &iodev_sqe->q);
+	mpsc_push(&dev_data->io_q, &iodev_sqe->q);
 	i2c_sam_twihs_next(dev, false);
 }
 
@@ -396,7 +396,7 @@ static int i2c_sam_twihs_initialize(const struct device *dev)
 	dev_data->dt_spec.bus = dev;
 	dev_data->iodev.api = &i2c_iodev_api;
 	dev_data->iodev.data = &dev_data->dt_spec;
-	rtio_mpsc_init(&dev_data->io_q);
+	mpsc_init(&dev_data->io_q);
 
 	/* Enable module's IRQ */
 	irq_enable(dev_cfg->irq_id);

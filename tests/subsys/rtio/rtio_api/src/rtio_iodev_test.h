@@ -5,8 +5,8 @@
  */
 
 #include <zephyr/ztest.h>
-#include <zephyr/rtio/rtio_mpsc.h>
 #include <zephyr/rtio/rtio.h>
+#include <zephyr/sys/mpsc_lockfree.h>
 #include <zephyr/kernel.h>
 
 #ifndef RTIO_IODEV_TEST_H_
@@ -38,7 +38,7 @@ static void rtio_iodev_test_next(struct rtio_iodev *iodev)
 		goto out;
 	}
 
-	struct rtio_mpsc_node *next = rtio_mpsc_pop(&iodev->iodev_sq);
+	struct mpsc_node *next = mpsc_pop(&iodev->iodev_sq);
 
 	if (next != NULL) {
 		struct rtio_iodev_sqe *next_sqe = CONTAINER_OF(next, struct rtio_iodev_sqe, q);
@@ -118,7 +118,7 @@ static void rtio_iodev_test_submit(struct rtio_iodev_sqe *iodev_sqe)
 	atomic_inc(&data->submit_count);
 
 	/* The only safe operation is enqueuing */
-	rtio_mpsc_push(&iodev->iodev_sq, &iodev_sqe->q);
+	mpsc_push(&iodev->iodev_sq, &iodev_sqe->q);
 
 	rtio_iodev_test_next(iodev);
 }
@@ -131,7 +131,7 @@ void rtio_iodev_test_init(struct rtio_iodev *test)
 {
 	struct rtio_iodev_test_data *data = test->data;
 
-	rtio_mpsc_init(&test->iodev_sq);
+	mpsc_init(&test->iodev_sq);
 	data->txn_head = NULL;
 	data->txn_curr = NULL;
 	k_timer_init(&data->timer, rtio_iodev_timer_fn, NULL);

@@ -54,7 +54,7 @@ static void rtio_executor_op(struct rtio_iodev_sqe *iodev_sqe)
  */
 void rtio_executor_submit(struct rtio *r)
 {
-	struct rtio_mpsc_node *node = rtio_mpsc_pop(&r->sq);
+	struct mpsc_node *node = mpsc_pop(&r->sq);
 
 	while (node != NULL) {
 		struct rtio_iodev_sqe *iodev_sqe = CONTAINER_OF(node, struct rtio_iodev_sqe, q);
@@ -76,7 +76,7 @@ void rtio_executor_submit(struct rtio *r)
 				__ASSERT(transaction != chained,
 					 "Expected chained or transaction flag, not both");
 #endif
-				node = rtio_mpsc_pop(&iodev_sqe->r->sq);
+				node = mpsc_pop(&iodev_sqe->r->sq);
 				next = CONTAINER_OF(node, struct rtio_iodev_sqe, q);
 				next->sqe.flags |= canceled_mask;
 				curr->next = next;
@@ -94,7 +94,7 @@ void rtio_executor_submit(struct rtio *r)
 			rtio_iodev_submit(iodev_sqe);
 		}
 
-		node = rtio_mpsc_pop(&r->sq);
+		node = mpsc_pop(&r->sq);
 	}
 }
 
@@ -122,7 +122,7 @@ static inline void rtio_executor_handle_multishot(struct rtio *r, struct rtio_io
 	}
 	if (!is_canceled) {
 		/* Request was not canceled, put the SQE back in the queue */
-		rtio_mpsc_push(&r->sq, &curr->q);
+		mpsc_push(&r->sq, &curr->q);
 		rtio_executor_submit(r);
 	}
 }
