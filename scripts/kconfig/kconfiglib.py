@@ -1434,7 +1434,7 @@ class Kconfig(object):
           Path to write header to.
 
           If None (the default), the path in the environment variable
-          KCONFIG_AUTOHEADER is used if set, and "include/generated/autoconf.h"
+          KCONFIG_AUTOHEADER is used if set, and "include/generated/zephyr/autoconf.h"
           otherwise. This is compatible with the C tools.
 
         header (default: None):
@@ -1453,7 +1453,7 @@ class Kconfig(object):
         """
         if filename is None:
             filename = os.getenv("KCONFIG_AUTOHEADER",
-                                 "include/generated/autoconf.h")
+                                 "include/generated/zephyr/autoconf.h")
 
         if self._write_if_changed(filename, self._autoconf_contents(header)):
             return "Kconfig header saved to '{}'".format(filename)

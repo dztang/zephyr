@@ -13,8 +13,8 @@
 #include <_soc_inthandlers.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/logging/log.h>
-#include <offsets.h>
-#include <zsr.h>
+#include <zephyr/offsets.h>
+#include <zephyr/zsr.h>
 #include <zephyr/arch/common/exc_handle.h>
 
 #include <xtensa_internal.h>

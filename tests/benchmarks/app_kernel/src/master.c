@@ -98,7 +98,7 @@ static void z_vrfy_test_thread_priority_set(k_tid_t thread, int prio)
 	z_impl_test_thread_priority_set(thread, prio);
 }
 
-#include <syscalls/test_thread_priority_set_mrsh.c>
+#include <zephyr/syscalls/test_thread_priority_set_mrsh.c>
 #endif
 
 /**
@@ -118,7 +118,7 @@ static timing_t z_vrfy_timing_timestamp_get(void)
 	return z_impl_timing_timestamp_get();
 }
 
-#include <syscalls/timing_timestamp_get_mrsh.c>
+#include <zephyr/syscalls/timing_timestamp_get_mrsh.c>
 #endif
 
 /*

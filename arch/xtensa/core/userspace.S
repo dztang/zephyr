@@ -5,10 +5,10 @@
  */
 
 #include <xtensa_asm2_s.h>
-#include <offsets.h>
+#include <zephyr/offsets.h>
 #include <offsets_short.h>
 #include <zephyr/syscall.h>
-#include <zsr.h>
+#include <zephyr/zsr.h>
 
 /**
  *  syscall number     arg1, arg2, arg3, arg4, arg5, arg6
