@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2024 Celina Sophie Kalus <hello@celinakalus.de>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		/delete-property/ zephyr,ipc_shm;
+	};
+
+	/* HSEM IPM is incompatible with HSEM MBOX */
+	/delete-node/ mailbox;
+
+	/* Define new memory regions for TX and RX */
+	/delete-node/ memory@38000000;
+
+	sram_rx: memory@38000000 {
+		reg = <0x38000000 0x08000>;
+	};
+
+	sram_tx: memory@38008000 {
+		reg = <0x38008000 0x08000>;
+	};
+};
+
+&pinctrl {
+	mbox: mbox@58026400 {
+		compatible = "st,mbox-stm32-hsem";
+		reg = < 0x58026400 0x400 >;
+		clocks = < &rcc 0xe0 0x2000000 >;
+		status = "okay";
+		interrupts = < 0x7e 0x0 >;
+		#mbox-cells = <1>;
+	};
+
+	ipc0: ipc0 {
+		compatible = "zephyr,ipc-icmsg";
+		tx-region = <&sram_tx>;
+		rx-region = <&sram_rx>;
+		mboxes = <&mbox 1>, <&mbox 0>;
+		mbox-names = "tx", "rx";
+		status = "okay";
+	};
+};
