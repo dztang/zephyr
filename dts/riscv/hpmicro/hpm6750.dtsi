@@ -1,0 +1,300 @@
+/*
+ * Copyright (c) 2022 HPMicro
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/clock/hpm67xx_64xx-clocks.h>
+#include <mem.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		cpu0: cpu@0 {
+			compatible = "riscv";
+			device_type = "cpu";
+			reg = <0>;
+			status = "okay";
+			riscv,isa = "rv32gc_xandes";
+			i-cache-line-size = <32>;
+			d-cache-line-size = <32>;
+			CPU0_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+			};
+		};
+		cpu1: cpu@1 {
+			compatible = "riscv";
+			device_type = "cpu";
+			reg = <1>;
+			status = "okay";
+			riscv,isa = "rv32gc_xandes";
+			i-cache-line-size = <32>;
+			d-cache-line-size = <32>;
+			CPU1_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+			};
+		};
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "hpmicro,hpm6750";
+		ranges;
+		clk: clock-controller@f4100000 {
+			compatible = "hpmicro,hpm-clock";
+			reg = <0xf4100000 0x100>;
+			clock-frequency = <1000000000>;
+			reg-names = "clk";
+			status = "okay";
+			clock-sys-core = <CLOCK_CPU0>;
+			ram-up-time = <(32*1000*9)>;
+			sysctl-present = <2>;
+			#clock-cells = <3>;
+		};
+
+		mtimer: timer@e6000000 {
+			compatible = "andestech,machine-timer";
+			reg = <0xe6000000 0x10>;
+			interrupts-extended = <&CPU0_intc 7 &CPU1_intc 7>;
+		};
+
+		flash0: flash@80000000 {
+			compatible = "soc-nv-flash";
+			reg = <0x80000000 DT_SIZE_M(16)>;
+		};
+
+		ilm: memory@0 {
+			compatible = "zephyr,memory-region";
+			reg = <0x0 DT_SIZE_K(256)>;
+			zephyr,memory-region = "ITCM";
+		};
+
+		dlm: memory@80000 {
+			compatible = "zephyr,memory-region";
+			reg = <0x080000 DT_SIZE_K(256)>;
+			zephyr,memory-region = "DTCM";
+		};
+
+		sram: memory@1080000 {
+			device_type = "memory";
+			compatible = "mmio-sram";
+			reg = <0x01080000 DT_SIZE_K(1024)>;
+		};
+
+		core0_lm_slv: memory@1000000 {
+			device_type = "memory";
+			reg = <0x1000000 DT_SIZE_K(512)>;
+		};
+
+		core1_lm_slv: memory@1180000 {
+			device_type = "memory";
+			reg = <0x1180000 DT_SIZE_K(256)>;
+		};
+
+		plic0: interrupt-controller@e4000000 {
+			compatible = "sifive,plic-1.0.0", "andestech,nceplic100";
+			#address-cells = <1>;
+			#interrupt-cells = <2>;
+			interrupt-controller;
+			reg = <0xe4000000 0x04000000>;
+			riscv,max-priority = <255>;
+			riscv,ndev = <1023>;
+			interrupts-extended = <&CPU0_intc 11 &CPU1_intc 11>;
+		};
+
+		plic_sw0: interrupt-controller@e6400000 {
+			compatible = "andestech,plic_sw";
+			#address-cells = <1>;
+			#interrupt-cells = <2>;
+			interrupt-controller;
+			reg = <0xe6400000 0x00400000>;
+			riscv,max-priority = <255>;
+			riscv,ndev = <1023>;
+			interrupts-extended = <&CPU0_intc 3 &CPU1_intc 3>;
+		};
+
+		uart0: serial@f0040000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0040000 0x1000>;
+			interrupts = <31 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART0 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart1: serial@f0044000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0044000 0x1000>;
+			interrupts = <32 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART1 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart2: serial@f0048000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0048000 0x1000>;
+			interrupts = <33 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART2 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart3: serial@f004c000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf004c000 0x1000>;
+			interrupts = <34 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART3 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart4: serial@f0050000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0050000 0x1000>;
+			interrupts = <35 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART4 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart5: serial@f0054000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0054000 0x1000>;
+			interrupts = <36 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART5 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart6: serial@f0058000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0058000 0x1000>;
+			interrupts = <37 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART6 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart7: serial@f005c000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf005c000 0x1000>;
+			interrupts = <38 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART7 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart8: serial@f0060000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0060000 0x1000>;
+			interrupts = <39 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART8 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart9: serial@f0064000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0064000 0x1000>;
+			interrupts = <40 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART9 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart10: serial@f0068000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0068000 0x1000>;
+			interrupts = <41 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART10 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart11: serial@f006c000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf006c000 0x1000>;
+			interrupts = <42 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART11 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart12: serial@f0070000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0070000 0x1000>;
+			interrupts = <43 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART12 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart13: serial@f0074000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0074000 0x1000>;
+			interrupts = <44 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART13 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart14: serial@f0078000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0078000 0x1000>;
+			interrupts = <45 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART14 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		uart15: serial@f007c000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf007c000 0x1000>;
+			interrupts = <46 1>;
+			interrupt-parent = <&plic0>;
+			clocks = <&clk CLOCK_UART15 CLOCK_SRC_PLL1_CLK1 5>;
+			status = "disabled";
+		};
+
+		pinctrl: pin-controller@f4040000 {
+			compatible = "hpmicro,hpm-pinctrl";
+			reg = <0xf4040000 0x40000>;
+			status = "okay";
+		};
+
+		pinctrl_pioc: pin-controller@f40d8000 {
+			compatible = "hpmicro,hpm-pinctrl";
+			reg = <0xf40d8000 0x40000>;
+			status = "okay";
+		};
+
+		pinctrl_bioc: pin-controller@f5010000 {
+			compatible = "hpmicro,hpm-pinctrl";
+			reg = <0xf5010000 0x40000>;
+			status = "okay";
+		};
+
+		gpio0: peripheral@f0000000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			reg = <0xf0000000 0x4000>;
+		};
+
+		gpio1: peripheral@f0004000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			reg = <0xf0004000 0x4000>;
+		};
+	};
+};
