@@ -1,0 +1,106 @@
+# Copyright (c) 2024 Espressif Systems (Shanghai) Co., Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+description: Espressif ESP32 SDHC controller
+
+compatible: "espressif,esp32-sdhc"
+
+include: [sdhc.yaml]
+
+properties:
+  reg:
+    required: true
+
+child-binding:
+  child-binding:
+
+    description: SDHC controller slot
+
+    include: [pinctrl-device.yaml]
+
+    properties:
+      reg:
+        type: int
+        enum:
+          - 0
+          - 1
+        required: true
+        description: |
+          Physical slot number of SDIO peripheral.
+
+      pinctrl-0:
+        required: true
+
+      pinctrl-names:
+        required: true
+
+      bus-width:
+        type: int
+        enum:
+          - 1
+          - 4
+        default: 4
+        description: SD bus width in bits
+
+      clk-pin:
+        type: int
+        default: -1
+        description: |
+          Clock pin for ESP32 and SoC models with fixed pins for SDIO.
+          For devices with GPIO matrix support, configuration shall be done
+          using pin control (pinctrl-0 field).
+
+      cmd-pin:
+        type: int
+        default: -1
+        description: |
+          Command pin for ESP32 and SoC models with fixed pins for SDIO.
+          For devices with GPIO matrix support, configuration shall be done
+          using pin control (pinctrl-0 field).
+
+      d0-pin:
+        type: int
+        default: -1
+        description: |
+          Data 0 pin for ESP32 and SoC models with fixed pins for SDIO.
+          For devices with GPIO matrix support, configuration shall be done
+          using pin control (pinctrl-0 field).
+
+      d1-pin:
+        type: int
+        default: -1
+        description: |
+          Data 1 pin for ESP32 and SoC models with fixed pins for SDIO.
+          For devices with GPIO matrix support, configuration shall be done
+          using pin control (pinctrl-0 field).
+
+      d2-pin:
+        type: int
+        default: -1
+        description: |
+          Data 2 pin for ESP32 and SoC models with fixed pins for SDIO.
+          For devices with GPIO matrix support, configuration shall be done
+          using pin control (pinctrl-0 field).
+
+      d3-pin:
+        type: int
+        default: -1
+        description: |
+          Data 3 pin for ESP32 and SoC models with fixed pins for SDIO.
+          For devices with GPIO matrix support, configuration shall be done
+          using pin control (pinctrl-0 field).
+
+      pwr-gpios:
+        type: phandle-array
+        description: |
+          Power pin
+          This is a configurable pin to deliver power supply to the SD card.
+          It is configured as a GPIO in order to execute power toggles and
+          reinitialize the SD slave when necessary.
+
+      power-delay-ms:
+        type: int
+        default: 500
+        description: |
+          time in ms for SDHC to delay when toggling power to the SD card. This
+          delay gives the card time to power up or down fully
