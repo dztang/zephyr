@@ -15,7 +15,7 @@ try:
 except ImportError:
     ELFFile = None
 
-from runners.core import ZephyrBinaryRunner
+from runners.core import ZephyrBinaryRunner, RunnerCaps
 
 DEFAULT_OPENOCD_TCL_PORT = 6333
 DEFAULT_OPENOCD_TELNET_PORT = 4444
@@ -89,6 +89,10 @@ class OpenOcdBinaryRunner(ZephyrBinaryRunner):
     @classmethod
     def name(cls):
         return 'openocd'
+
+    @classmethod
+    def capabilities(cls):
+        return RunnerCaps(commands={'flash', 'debug', 'debugserver', 'attach'})
 
     @classmethod
     def do_add_parser(cls, parser):
