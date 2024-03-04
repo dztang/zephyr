@@ -8,6 +8,7 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <ksched.h>
+#include <ipi.h>
 #include <zephyr/kernel_structs.h>
 
 #if CONFIG_MP_MAX_NUM_CPUS < 2
@@ -741,7 +742,7 @@ ZTEST(smp, test_smp_ipi)
 	for (int i = 0; i < 3 ; i++) {
 		/* issue a sched ipi to tell other CPU to run thread */
 		sched_ipi_has_called = 0;
-		arch_sched_ipi();
+		arch_sched_ipi(IPI_ALL_CPUS_MASK);
 
 		/* Need to wait longer than we think, loaded CI
 		 * systems need to wait for host scheduling to run the

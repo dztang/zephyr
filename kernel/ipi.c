@@ -82,7 +82,7 @@ void signal_pending_ipi(void)
 
 		cpu_bitmap = (uint32_t)atomic_clear(&_kernel.pending_ipi);
 		if (cpu_bitmap != 0) {
-			arch_sched_ipi();
+			arch_sched_ipi(cpu_bitmap);
 		}
 	}
 #endif /* CONFIG_SCHED_IPI_SUPPORTED */

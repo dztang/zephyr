@@ -178,7 +178,7 @@ void soc_mp_startup(uint32_t cpu)
 #endif /* CONFIG_ADSP_IDLE_CLOCK_GATING */
 }
 
-void arch_sched_ipi(void)
+void arch_sched_ipi(uint32_t cpu_bitmap)
 {
 	uint32_t curr = arch_proc_id();
 
@@ -186,7 +186,8 @@ void arch_sched_ipi(void)
 	unsigned int num_cpus = arch_num_cpus();
 
 	for (int core = 0; core < num_cpus; core++) {
-		if (core != curr && soc_cpus_active[core]) {
+		if ((core != curr) && soc_cpus_active[core] &&
+		    ((cpu_bitmap & BIT(core)) != 0)) {
 			IDC[core].agents[1].ipc.idr = INTEL_ADSP_IPC_BUSY;
 		}
 	}

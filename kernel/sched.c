@@ -378,9 +378,9 @@ static void update_cache(int preempt_ok)
 
 static struct _cpu *thread_active_elsewhere(struct k_thread *thread)
 {
-	/* True if the thread is currently running on another CPU.
-	 * There are more scalable designs to answer this question in
-	 * constant time, but this is fine for now.
+	/* Returns pointer to _cpu if the thread is currently running on
+	 * another CPU. There are more scalable designs to answer thisu
+	 * question in constant time, but this is fine for now.
 	 */
 #ifdef CONFIG_SMP
 	int currcpu = _current_cpu->id;
@@ -495,7 +495,7 @@ static void z_thread_halt(struct k_thread *thread, k_spinlock_key_t key,
 		 * here, not deferred!
 		 */
 #ifdef CONFIG_SCHED_IPI_SUPPORTED
-		arch_sched_ipi();
+		arch_sched_ipi(IPI_CPU_MASK(cpu->id));
 #endif /* CONFIG_SCHED_IPI_SUPPORTED */
 	}
 

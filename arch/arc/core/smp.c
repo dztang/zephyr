@@ -131,17 +131,19 @@ static void sched_ipi_handler(const void *unused)
 }
 
 /* arch implementation of sched_ipi */
-void arch_sched_ipi(void)
+void arch_sched_ipi(uint32_t cpu_bitmap)
 {
-	uint32_t i;
-
-	/* broadcast sched_ipi request to other cores
-	 * if the target is current core, hardware will ignore it
-	 */
+	unsigned int i;
 	unsigned int num_cpus = arch_num_cpus();
 
+	/* Send sched_ipi request to other cores
+	 * if the target is current core, hardware will ignore it
+	 */
+
 	for (i = 0U; i < num_cpus; i++) {
-		z_arc_connect_ici_generate(i);
+		if ((cpu_bitmap & BIT(i)) != 0) {
+			z_arc_connect_ici_generate(i);
+		}
 	}
 }
 

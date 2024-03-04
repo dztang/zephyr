@@ -391,6 +391,9 @@ config GEN_IRQ_VECTOR_TABLE
 config ARCH_HAS_SINGLE_THREAD_SUPPORT
 	default y if !SMP
 
+config ARCH_HAS_DIRECTED_IPIS
+	default y
+
 rsource "Kconfig.isa"
 
 endmenu
