@@ -31,6 +31,8 @@
 		clocks = < &rcc 0xe0 0x2000000 >;
 		status = "okay";
 		interrupts = < 0x7e 0x0 >;
+		st,hsem_ids_tx = <11>;
+		st,hsem_ids_rx = <10>;
 		#mbox-cells = <1>;
 	};
 
@@ -38,7 +40,7 @@
 		compatible = "zephyr,ipc-icmsg";
 		tx-region = <&sram_tx>;
 		rx-region = <&sram_rx>;
-		mboxes = <&mbox 1>, <&mbox 0>;
+		mboxes = <&mbox 11>, <&mbox 10>;
 		mbox-names = "tx", "rx";
 		status = "okay";
 	};
