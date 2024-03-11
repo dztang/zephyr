@@ -14,5 +14,19 @@ properties:
   interrupts:
     required: true
 
+  st,hsem_ids_tx:
+    type: array
+    required: true
+    description: |
+      Set of hardware semaphore IDs to be used for TX channels. For each
+      given ID, an MBOX TX channel of the same ID exists.
+
+  st,hsem_ids_rx:
+    type: array
+    required: true
+    description: |
+      Set of hardware semaphore IDs to be used for RX channels. For each
+      given ID, an MBOX RX channel of the same ID exists.
+
 mbox-cells:
   - channel
