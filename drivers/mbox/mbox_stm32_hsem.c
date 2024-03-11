@@ -29,109 +29,87 @@ LOG_MODULE_REGISTER(mbox_stm32_hsem_ipc);
 #endif
 
 #if HSEM_CPU_ID == HSEM_CPU1
-#define MBOX_TX_CHANNEL 0
-#define MBOX_TX_HSEM_ID CFG_HW_IPM_CPU2_SEMID
-
-#define MBOX_RX_CHANNEL 1
-#define MBOX_RX_HSEM_ID CFG_HW_IPM_CPU1_SEMID
+#define ll_hsem_enableit_cier       LL_HSEM_EnableIT_C1IER
+#define ll_hsem_disableit_cier      LL_HSEM_DisableIT_C1IER
+#define ll_hsem_clearflag_cicr      LL_HSEM_ClearFlag_C1ICR
+#define ll_hsem_isactiveflag_cmisr   LL_HSEM_IsActiveFlag_C1MISR
 #else /* HSEM_CPU2 */
-#define MBOX_TX_CHANNEL 1
-#define MBOX_TX_HSEM_ID CFG_HW_IPM_CPU1_SEMID
-
-#define MBOX_RX_CHANNEL 0
-#define MBOX_RX_HSEM_ID CFG_HW_IPM_CPU2_SEMID
+#define ll_hsem_enableit_cier       LL_HSEM_EnableIT_C2IER
+#define ll_hsem_disableit_cier      LL_HSEM_DisableIT_C2IER
+#define ll_hsem_clearflag_cicr      LL_HSEM_ClearFlag_C2ICR
+#define ll_hsem_isactiveflag_cmisr   LL_HSEM_IsActiveFlag_C2MISR
 #endif /* HSEM_CPU_ID */
 
-#define MAX_CHANNELS 2
+#define MBOX_HSEM_TX_MASK(idx, _) BIT(DT_INST_PROP_BY_IDX(0, st_hsem_ids_tx, idx))
+#define MBOX_HSEM_RX_MASK(idx, _) BIT(DT_INST_PROP_BY_IDX(0, st_hsem_ids_rx, idx))
 
+#define MAX_TX_CHANNELS DT_INST_PROP_LEN(0, st_hsem_ids_tx)
+#define MAX_RX_CHANNELS DT_INST_PROP_LEN(0, st_hsem_ids_rx)
+#define MAX_CHANNELS (MAX_RX_CHANNELS + MAX_TX_CHANNELS)
 
 struct mbox_stm32_hsem_data {
 	const struct device *dev;
-	mbox_callback_t cb;
-	void *user_data;
+	mbox_callback_t cb[MAX_RX_CHANNELS];
+	void *user_data[MAX_RX_CHANNELS];
 };
 
 static struct mbox_stm32_hsem_data stm32_hsem_mbox_data;
 
-static struct mbox_stm32_hsem_conf {
+struct mbox_stm32_hsem_conf {
 	struct stm32_pclken pclken;
-} stm32_hsem_mbox_conf = {
+	int rx_hsem_ids[MAX_RX_CHANNELS];
+	int tx_ch_mask;
+	int rx_ch_mask;
+};
+
+static const struct mbox_stm32_hsem_conf stm32_hsem_mbox_conf = {
+	.tx_ch_mask = LISTIFY(MAX_TX_CHANNELS, MBOX_HSEM_TX_MASK, |),
+	.rx_ch_mask = LISTIFY(MAX_RX_CHANNELS, MBOX_HSEM_RX_MASK, |),
+	.rx_hsem_ids = DT_INST_PROP(0, st_hsem_ids_rx),
 	.pclken = {
 		.bus = DT_INST_CLOCKS_CELL(0, bus),
 		.enr = DT_INST_CLOCKS_CELL(0, bits)
 	},
 };
 
-static inline void stm32_hsem_enable_rx_interrupt(void)
-{
-	const uint32_t mask_hsem_id = BIT(MBOX_RX_HSEM_ID);
-
-#if HSEM_CPU_ID == HSEM_CPU1
-	LL_HSEM_EnableIT_C1IER(HSEM, mask_hsem_id);
-#else /* HSEM_CPU2 */
-	LL_HSEM_EnableIT_C2IER(HSEM, mask_hsem_id);
-#endif /* HSEM_CPU_ID */
-}
-
-static inline void stm32_hsem_disable_rx_interrupt(void)
-{
-	const uint32_t mask_hsem_id = BIT(MBOX_RX_HSEM_ID);
-
-#if HSEM_CPU_ID == HSEM_CPU1
-	LL_HSEM_DisableIT_C1IER(HSEM, mask_hsem_id);
-#else /* HSEM_CPU2 */
-	LL_HSEM_DisableIT_C2IER(HSEM, mask_hsem_id);
-#endif /* HSEM_CPU_ID */
-}
-
-static inline void stm32_hsem_clear_rx_interrupt(void)
-{
-	const uint32_t mask_hsem_id = BIT(MBOX_RX_HSEM_ID);
-
-#if HSEM_CPU_ID == HSEM_CPU1
-	LL_HSEM_ClearFlag_C1ICR(HSEM, mask_hsem_id);
-#else /* HSEM_CPU2 */
-	LL_HSEM_ClearFlag_C2ICR(HSEM, mask_hsem_id);
-#endif /* HSEM_CPU_ID */
-}
-
-static inline uint32_t stm32_hsem_is_rx_interrupt_active(void)
-{
-	const uint32_t mask_hsem_id = BIT(MBOX_RX_HSEM_ID);
-
-#if HSEM_CPU_ID == HSEM_CPU1
-	return LL_HSEM_IsActiveFlag_C1ISR(HSEM, mask_hsem_id);
-#else /* HSEM_CPU2 */
-	return LL_HSEM_IsActiveFlag_C2ISR(HSEM, mask_hsem_id);
-#endif /* HSEM_CPU_ID */
-}
-
 static inline bool is_rx_channel_valid(const struct device *dev, uint32_t ch)
 {
-	/* Only support one RX channel */
-	return (ch == MBOX_RX_CHANNEL);
+	const struct mbox_stm32_hsem_conf *const cfg = dev->config;
+
+	return (cfg->rx_ch_mask & BIT(ch));
 }
 
 static inline bool is_tx_channel_valid(const struct device *dev, uint32_t ch)
 {
-	/* Only support one TX channel */
-	return (ch == MBOX_TX_CHANNEL);
+	const struct mbox_stm32_hsem_conf *const cfg = dev->config;
+
+	return (cfg->tx_ch_mask & BIT(ch));
 }
 
 static void mbox_dispatcher(const struct device *dev)
 {
 	struct mbox_stm32_hsem_data *data = dev->data;
+	const struct mbox_stm32_hsem_conf *const cfg = dev->config;
 
 	/* Check semaphore rx_semid interrupt status */
-	if (!stm32_hsem_is_rx_interrupt_active())
-		return;
+	for (int idx = 0; idx < MAX_RX_CHANNELS; idx++) {
+		int channel = cfg->rx_hsem_ids[idx];
 
-	if (data->cb != NULL) {
-		data->cb(dev, MBOX_RX_CHANNEL, data->user_data, NULL);
+		if (!is_rx_channel_valid(dev, channel)) {
+			continue;
+		}
+
+		if (!ll_hsem_isactiveflag_cmisr(HSEM, BIT(channel))) {
+			continue;
+		}
+
+		if (data->cb[idx] != NULL) {
+			data->cb[idx](dev, channel, data->user_data[idx], NULL);
+		}
+
+		/* Clear semaphore rx_semid interrupt status and masked status */
+		ll_hsem_clearflag_cicr(HSEM, BIT(channel));
 	}
-
-	/* Clear semaphore rx_semid interrupt status and masked status */
-	stm32_hsem_clear_rx_interrupt();
 }
 
 static int mbox_stm32_hsem_send(const struct device *dev, uint32_t channel,
@@ -150,8 +128,8 @@ static int mbox_stm32_hsem_send(const struct device *dev, uint32_t channel,
 	 * Locking and unlocking the hardware semaphore
 	 * causes an interrupt on the receiving side.
 	 */
-	z_stm32_hsem_lock(MBOX_TX_HSEM_ID, HSEM_LOCK_DEFAULT_RETRY);
-	z_stm32_hsem_unlock(MBOX_TX_HSEM_ID);
+	z_stm32_hsem_lock(channel, HSEM_LOCK_DEFAULT_RETRY);
+	z_stm32_hsem_unlock(channel);
 
 	return 0;
 }
@@ -160,13 +138,24 @@ static int mbox_stm32_hsem_register_callback(const struct device *dev, uint32_t 
 				      mbox_callback_t cb, void *user_data)
 {
 	struct mbox_stm32_hsem_data *data = dev->data;
+	const struct mbox_stm32_hsem_conf *const cfg = dev->config;
 
 	if (!(is_rx_channel_valid(dev, channel))) {
 		return -EINVAL;
 	}
 
-	data->cb = cb;
-	data->user_data = user_data;
+	int idx = -1;
+
+	for (int i = 0; i < MAX_RX_CHANNELS; i++) {
+		if (cfg->rx_hsem_ids[i] == channel) {
+			idx = i;
+		}
+	}
+
+	__ASSERT_NO_MSG(idx != -1);
+
+	data->cb[idx] = cb;
+	data->user_data[idx] = user_data;
 
 	return 0;
 }
@@ -183,7 +172,6 @@ static uint32_t mbox_stm32_hsem_max_channels_get(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
-	/* Only two channels supported, one RX and one TX */
 	return MAX_CHANNELS;
 }
 
@@ -194,10 +182,9 @@ static int mbox_stm32_hsem_set_enabled(const struct device *dev, uint32_t channe
 	}
 
 	if (enable) {
-		stm32_hsem_clear_rx_interrupt();
-		stm32_hsem_enable_rx_interrupt();
+		ll_hsem_enableit_cier(HSEM, BIT(channel));
 	} else {
-		stm32_hsem_disable_rx_interrupt();
+		ll_hsem_disableit_cier(HSEM, BIT(channel));
 	}
 
 	return 0;
@@ -206,7 +193,7 @@ static int mbox_stm32_hsem_set_enabled(const struct device *dev, uint32_t channe
 #if HSEM_CPU_ID == HSEM_CPU1
 static int mbox_stm32_clock_init(const struct device *dev)
 {
-	const struct mbox_stm32_hsem_conf *cfg = dev->config;
+	const struct mbox_stm32_hsem_conf *const cfg = dev->config;
 	const struct device *const clk = DEVICE_DT_GET(STM32_CLOCK_CONTROL_NODE);
 
 	if (!device_is_ready(clk)) {
@@ -226,6 +213,7 @@ static int mbox_stm32_clock_init(const struct device *dev)
 static int mbox_stm32_hsem_init(const struct device *dev)
 {
 	struct mbox_stm32_hsem_data *data = dev->data;
+	const struct mbox_stm32_hsem_conf *const cfg = dev->config;
 	int ret = 0;
 
 	data->dev = dev;
@@ -237,6 +225,8 @@ static int mbox_stm32_hsem_init(const struct device *dev)
 		return ret;
 	}
 #endif /* HSEM_CPU_ID */
+
+	ll_hsem_clearflag_cicr(HSEM, cfg->rx_ch_mask);
 
 	/* Configure interrupt service routine */
 	IRQ_CONNECT(DT_INST_IRQN(0),
