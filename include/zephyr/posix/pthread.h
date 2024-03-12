@@ -19,6 +19,8 @@
 extern "C" {
 #endif
 
+#if _POSIX_C_SOURCE >= 200112L
+
 /*
  * Pthread detach/joinable
  * Undefine possibly predefined values by external toolchain headers
@@ -502,8 +504,6 @@ int pthread_setname_np(pthread_t thread, const char *name);
  * @retval Negative value if kernel function error
  */
 int pthread_getname_np(pthread_t thread, char *name, size_t len);
-
-#ifdef CONFIG_PTHREAD_IPC
 
 /**
  * @brief Destroy a pthread_spinlock_t.
