@@ -26,6 +26,9 @@
 		zephyr,sram = &cpurad_ram0;
 		zephyr,shell-uart = &uart135;
 	};
+	aliases {
+		ipc-to-cpusys = &cpurad_cpusys_ipc;
+	};
 };
 
 &shared_ram3x_region {
