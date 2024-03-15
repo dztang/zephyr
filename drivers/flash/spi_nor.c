@@ -19,6 +19,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys_clock.h>
 #include <zephyr/pm/device.h>
+#include <zephyr/pm/device_runtime.h>
 
 #include "spi_nor.h"
 #include "jesd216.h"
@@ -500,11 +501,23 @@ static int exit_dpd(const struct device *const dev)
 
 /* Everything necessary to acquire owning access to the device.
  *
- * This means taking the lock and, if necessary, waking the device
- * from deep power-down mode.
+ * This means powering up the SPI bus, taking the lock and, if necessary,
+ * waking the device from deep power-down mode.
  */
-static void acquire_device(const struct device *dev)
+static int acquire_device(const struct device *dev)
 {
+	const struct spi_nor_config *cfg = dev->config;
+	int ret;
+
+	/* Request bus to be on. If k_sem_take blocks, the bus is powered
+	 * up anyway, so running this early has no power implications.
+	 */
+	ret = pm_device_runtime_get(cfg->spi.bus);
+	if (ret < 0) {
+		LOG_ERR("Failed to acquire SPI bus");
+		return ret;
+	}
+
 	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
 		struct spi_nor_data *const driver_data = dev->data;
 
@@ -512,17 +525,20 @@ static void acquire_device(const struct device *dev)
 	}
 
 	if (IS_ENABLED(CONFIG_SPI_NOR_IDLE_IN_DPD)) {
-		exit_dpd(dev);
+		ret = exit_dpd(dev);
 	}
+	return ret;
 }
 
 /* Everything necessary to release access to the device.
  *
  * This means (optionally) putting the device into deep power-down
- * mode, and releasing the lock.
+ * mode, releasing the lock, and powering down the SPI bus.
  */
 static void release_device(const struct device *dev)
 {
+	const struct spi_nor_config *cfg = dev->config;
+
 	if (IS_ENABLED(CONFIG_SPI_NOR_IDLE_IN_DPD)) {
 		enter_dpd(dev);
 	}
@@ -532,6 +548,9 @@ static void release_device(const struct device *dev)
 
 		k_sem_give(&driver_data->sem);
 	}
+
+	/* Release bus request */
+	pm_device_runtime_put(cfg->spi.bus);
 }
 
 /**
@@ -670,7 +689,10 @@ static int mxicy_configure(const struct device *dev, const uint8_t *jedec_id)
 		return 0;
 	}
 
-	acquire_device(dev);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
 
 	/* Read current configuration register */
 
@@ -712,7 +734,10 @@ static int spi_nor_read(const struct device *dev, off_t addr, void *dest,
 		return -EINVAL;
 	}
 
-	acquire_device(dev);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
 
 	ret = spi_nor_cmd_addr_read(dev, SPI_NOR_CMD_READ, addr, dest, size);
 
@@ -729,7 +754,10 @@ static int flash_spi_nor_ex_op(const struct device *dev, uint16_t code,
 	ARG_UNUSED(in);
 	ARG_UNUSED(out);
 
-	acquire_device(dev);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
 
 	switch (code) {
 	case FLASH_EX_OP_RESET:
@@ -761,7 +789,11 @@ static int spi_nor_write(const struct device *dev, off_t addr,
 		return -EINVAL;
 	}
 
-	acquire_device(dev);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
+
 	ret = spi_nor_write_protection_set(dev, false);
 	if (ret == 0) {
 		while (size > 0) {
@@ -823,7 +855,11 @@ static int spi_nor_erase(const struct device *dev, off_t addr, size_t size)
 		return -EINVAL;
 	}
 
-	acquire_device(dev);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
+
 	ret = spi_nor_write_protection_set(dev, false);
 
 	while ((size > 0) && (ret == 0)) {
@@ -922,9 +958,14 @@ static int spi_nor_write_protection_set(const struct device *dev,
 static int spi_nor_sfdp_read(const struct device *dev, off_t addr,
 			     void *dest, size_t size)
 {
-	acquire_device(dev);
+	int ret;
 
-	int ret = read_sfdp(dev, addr, dest, size);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = read_sfdp(dev, addr, dest, size);
 
 	release_device(dev);
 
@@ -936,13 +977,18 @@ static int spi_nor_sfdp_read(const struct device *dev, off_t addr,
 static int spi_nor_read_jedec_id(const struct device *dev,
 				 uint8_t *id)
 {
+	int ret;
+
 	if (id == NULL) {
 		return -EINVAL;
 	}
 
-	acquire_device(dev);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
 
-	int ret = spi_nor_cmd_read(dev, SPI_NOR_CMD_RDID, id, SPI_NOR_MAX_ID_LEN);
+	ret = spi_nor_cmd_read(dev, SPI_NOR_CMD_RDID, id, SPI_NOR_MAX_ID_LEN);
 
 	release_device(dev);
 
@@ -989,7 +1035,10 @@ static int spi_nor_set_address_mode(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	acquire_device(dev);
+	ret = acquire_device(dev);
+	if (ret < 0) {
+		return ret;
+	}
 
 	if ((enter_4byte_addr & 0x02) != 0) {
 		/* Enter after WREN. */
@@ -1244,7 +1293,10 @@ static int spi_nor_configure(const struct device *dev)
 	/* After a soft-reset the flash might be in DPD or busy writing/erasing.
 	 * Exit DPD and wait until flash is ready.
 	 */
-	acquire_device(dev);
+	rc = acquire_device(dev);
+	if (rc < 0) {
+		return rc;
+	}
 
 	rc = exit_dpd(dev);
 	if (rc < 0) {
@@ -1290,7 +1342,10 @@ static int spi_nor_configure(const struct device *dev)
 	 * that powers up with block protect enabled.
 	 */
 	if (cfg->has_lock != 0) {
-		acquire_device(dev);
+		rc = acquire_device(dev);
+		if (rc < 0) {
+			return rc;
+		}
 
 		rc = spi_nor_rdsr(dev);
 
@@ -1365,12 +1420,18 @@ static int spi_nor_pm_control(const struct device *dev, enum pm_device_action ac
 		break;
 #else
 	case PM_DEVICE_ACTION_SUSPEND:
-		acquire_device(dev);
+		rc = acquire_device(dev);
+		if (rc < 0) {
+			return rc;
+		}
 		rc = enter_dpd(dev);
 		release_device(dev);
 		break;
 	case PM_DEVICE_ACTION_RESUME:
-		acquire_device(dev);
+		rc = acquire_device(dev);
+		if (rc < 0) {
+			return rc;
+		}
 		rc = exit_dpd(dev);
 		release_device(dev);
 		break;
@@ -1383,7 +1444,10 @@ static int spi_nor_pm_control(const struct device *dev, enum pm_device_action ac
 			/* Move to DPD, the correct device state
 			 * for PM_DEVICE_STATE_SUSPENDED
 			 */
-			acquire_device(dev);
+			rc = acquire_device(dev);
+			if (rc < 0) {
+				return rc;
+			}
 			rc = enter_dpd(dev);
 			release_device(dev);
 		}
