@@ -110,7 +110,7 @@ static ALWAYS_INLINE uint32_t shared_data_access_lock(void)
 static ALWAYS_INLINE void shared_data_access_unlock(bool key)
 {
 	if (key) {
-		/* We are in thread context and have to reenable TICKER_USER_ID_ULL_HIGH */
+		/* We are in thread context and have to re-enable TICKER_USER_ID_ULL_HIGH */
 		mayfly_enable(TICKER_USER_ID_THREAD, TICKER_USER_ID_ULL_HIGH, 1U);
 	}
 }
