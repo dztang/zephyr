@@ -620,10 +620,10 @@ int hawkbit_init(void)
 	return ret;
 }
 
-static int enum_for_http_req_string(char *userdata)
+static int enum_for_http_req_string(const char *userdata)
 {
 	int i = 0;
-	char *name = http_request[i].http_req_str;
+	const char *name = http_request[i].http_req_str;
 
 	while (name) {
 		if (strcmp(name, userdata) == 0) {
@@ -833,7 +833,7 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 	switch (type) {
 	case HAWKBIT_PROBE:
 		ret = http_client_req(hb_context.sock, &hb_context.http_req, HAWKBIT_RECV_TIMEOUT,
-				      "HAWKBIT_PROBE");
+				      (char *)"HAWKBIT_PROBE");
 		if (ret < 0) {
 			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_PROBE", ret);
 			return false;
@@ -865,7 +865,7 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 		hb_context.http_req.payload_len = strlen(hb_context.status_buffer);
 
 		ret = http_client_req(hb_context.sock, &hb_context.http_req, HAWKBIT_RECV_TIMEOUT,
-				      "HAWKBIT_CONFIG_DEVICE");
+				      (char *)"HAWKBIT_CONFIG_DEVICE");
 		if (ret < 0) {
 			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_CONFIG_DEVICE",
 				ret);
@@ -896,7 +896,7 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 		hb_context.http_req.payload_len = strlen(hb_context.status_buffer);
 
 		ret = http_client_req(hb_context.sock, &hb_context.http_req, HAWKBIT_RECV_TIMEOUT,
-				      "HAWKBIT_CLOSE");
+				      (char *)"HAWKBIT_CLOSE");
 		if (ret < 0) {
 			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_CLOSE", ret);
 			return false;
@@ -907,7 +907,7 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 	case HAWKBIT_PROBE_DEPLOYMENT_BASE:
 		hb_context.http_req.content_type_value = NULL;
 		ret = http_client_req(hb_context.sock, &hb_context.http_req, HAWKBIT_RECV_TIMEOUT,
-				      "HAWKBIT_PROBE_DEPLOYMENT_BASE");
+				      (char *)"HAWKBIT_PROBE_DEPLOYMENT_BASE");
 		if (ret < 0) {
 			LOG_ERR("Unable to send HTTP request (%s): %d",
 				"HAWKBIT_PROBE_DEPLOYMENT_BASE", ret);
@@ -943,7 +943,7 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 		hb_context.http_req.payload_len = strlen(hb_context.status_buffer);
 
 		ret = http_client_req(hb_context.sock, &hb_context.http_req, HAWKBIT_RECV_TIMEOUT,
-				      "HAWKBIT_REPORT");
+				      (char *)"HAWKBIT_REPORT");
 		if (ret < 0) {
 			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_REPORT", ret);
 			return false;
@@ -953,7 +953,7 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 
 	case HAWKBIT_DOWNLOAD:
 		ret = http_client_req(hb_context.sock, &hb_context.http_req, HAWKBIT_RECV_TIMEOUT,
-				      "HAWKBIT_DOWNLOAD");
+				      (char *)"HAWKBIT_DOWNLOAD");
 		if (ret < 0) {
 			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_DOWNLOAD", ret);
 			return false;
