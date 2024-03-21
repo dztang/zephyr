@@ -15,8 +15,9 @@
 
 	/* HW resources are split between CM7 and CM4 */
 	chosen {
-		zephyr,console = &usart1;
-		zephyr,shell-uart = &usart1;
+		zephyr,console = &cdc_acm_uart0;
+		zephyr,shell-uart = &cdc_acm_uart0;
+		zephyr,cdc-acm-uart0 = &cdc_acm_uart0;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		zephyr,code-partition = &code_partition;
@@ -87,7 +88,16 @@
 	status = "okay";
 };
 
+/* Only one should be enabled */
 &usbotg_fs {
+	status = "disabled";
+};
+
+&usbotg_hs {
+	status = "okay";
+};
+
+&cdc_acm_uart0 {
 	status = "okay";
 };
 
