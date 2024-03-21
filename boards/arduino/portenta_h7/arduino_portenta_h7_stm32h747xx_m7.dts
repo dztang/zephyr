@@ -30,6 +30,14 @@
 		status = "okay";
 	};
 
+	ethernet_phy_en: ethernet_phy_en {
+		compatible = "regulator-fixed";
+		regulator-name = "ethernet-phy-reset-release";
+		enable-gpios = <&gpioj 15 GPIO_ACTIVE_HIGH>;
+		regulator-boot-on;
+		status = "okay";
+	};
+
 	sdram1: sdram@c0000000 {
 		compatible = "zephyr,memory-region", "mmio-sram";
 		device_type = "memory";
