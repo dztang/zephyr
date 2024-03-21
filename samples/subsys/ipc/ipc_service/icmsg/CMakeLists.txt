@@ -8,7 +8,9 @@ cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
-if(NOT ("${BOARD}" STREQUAL "nrf5340dk"))
+if("${BOARD}" STREQUAL "nrf5340dk")
+elseif("${BOARD}" STREQUAL "stm32h747i_disco")
+else()
   message(FATAL_ERROR "${BOARD} is not supported for this sample")
 endif()
 
