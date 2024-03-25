@@ -172,8 +172,7 @@ static const struct sensor_driver_api adxl375_api_funcs = {.channel_get = adxl37
 	{                                                                                          \
 		.bus_init = adxl375_spi_init,                                                      \
 		.spi = SPI_DT_SPEC_INST_GET(inst, SPI_WORD_SET(8) | SPI_TRANSFER_MSB, 0),          \
-		ADXL375_CONFIG(inst) COND_CODE_1(DT_INST_NODE_HAS_PROP(inst, int1_gpios),          \
-						 (ADXL375_CFG_IRQ(inst)), ())                      \
+		ADXL375_CONFIG(inst)                                                               \
 	}
 
 #define ADXL375_DEFINE_SPI(inst)                                                                   \
@@ -188,8 +187,7 @@ static const struct sensor_driver_api adxl375_api_funcs = {.channel_get = adxl37
 #define ADXL375_CONFIG_I2C(inst)                                                                   \
 	{                                                                                          \
 		.bus_init = adxl375_i2c_init, .i2c = I2C_DT_SPEC_INST_GET(inst),                   \
-		ADXL375_CONFIG(inst) COND_CODE_1(DT_INST_NODE_HAS_PROP(inst, int1_gpios),          \
-						 (ADXL375_CFG_IRQ(inst)), ())                      \
+		ADXL375_CONFIG(inst)                                                               \
 	}
 
 #define ADXL375_DEFINE_I2C(inst)                                                                   \

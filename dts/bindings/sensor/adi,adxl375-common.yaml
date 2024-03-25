@@ -31,4 +31,3 @@ properties:
     type: boolean
     description: |
           Low power mode. Default is false.
-
