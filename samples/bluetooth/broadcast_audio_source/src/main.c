@@ -409,7 +409,9 @@ static int setup_broadcast_source(struct bt_bap_broadcast_source **source)
 	create_param.params = subgroup_param;
 	create_param.qos = &preset_active.qos;
 	create_param.encryption = false;
-	create_param.packing = BT_ISO_PACKING_SEQUENTIAL;
+	create_param.packing = (IS_ENABLED(CONFIG_BT_ISO_PACKING_INTERLEAVED) ?
+				BT_ISO_PACKING_INTERLEAVED :
+				BT_ISO_PACKING_SEQUENTIAL);
 
 	printk("Creating broadcast source with %zu subgroups with %zu streams\n",
 	       ARRAY_SIZE(subgroup_param),
