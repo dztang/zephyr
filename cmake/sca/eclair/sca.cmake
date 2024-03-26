@@ -104,7 +104,6 @@ add_custom_target(eclair ALL
     AS_ALIASES=${AS_ALIASES}
     LD_ALIASES=${LD_ALIASES}
     AR_ALIASES=${AR_ALIASES}
-    --
     ${ECLAIR_ENV}
     -verbose
     -project_name=${ECLAIR_PROJECT_NAME}
@@ -120,7 +119,6 @@ add_custom_target(eclair ALL
     ECLAIR_DATA_DIR=${ECLAIR_DATA_DIR}
     ECLAIR_OUTPUT_DIR=${ECLAIR_OUTPUT_DIR}
     ECLAIR_PROJECT_ECD=${ECLAIR_PROJECT_ECD}
-    --
     ${ECLAIR_REPORT}
     -quiet
     -eval_file=${ECLAIR_ECL_DIR}/db_generation.ecl
@@ -134,4 +132,3 @@ add_custom_target(eclair ALL
   USES_TERMINAL
   COMMAND_EXPAND_LISTS
 )
-
