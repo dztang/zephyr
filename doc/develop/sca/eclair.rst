@@ -29,16 +29,25 @@ called with a ``-DZEPHYR_SCA_VARIANT=eclair`` parameter.
 Configurations
 **************
 
+The configure of the ECLAIR SCA environment can be done via a config file and Kconfig
+
+To invoke a configuration file into the ECLAIR call, you can define the ``DECLAIR_CONFIG`` variable,
+for example:
+
+.. code-block:: shell
+
+    west build -b mimxrt1064_evk samples/basic/blinky -- -DZEPHYR_SCA_VARIANT=eclair -DECLAIR_CONFIG=$(pwd)/cmake/sca/eclair/eclair.config
+
 There are different configuration sets that can be used to run ECLAIR without adapting
 the rule set.
 
-The default configuration is ``first_analysis``, which is a tiny selection of rules
-to verify that everything is correctly working.
+The default (if no config file is given) configuration is always ``first_analysis``,
+which is a tiny selection of rules to verify that everything is correctly working.
 
 Zephyr is a large and complex project, so the configuration sets are split the
 Zephyr's guidelines selection
 (taken from https://docs.zephyrproject.org/latest/contribute/coding_guidelines/index.html)
-in four sets to make it more digestible to use on a private machine:
+in five sets to make it more digestible to use on a private machine:
 
 * first_analysis (default): a tiny selection of rules to verify that everything
   is correctly working.
@@ -53,41 +62,61 @@ in four sets to make it more digestible to use on a private machine:
 
 * std_lib: guidelines about the C Standard Library.
 
-To change the configuration, you can define the ``ECLAIR_RULES_SET`` variable,
-for example:
+Related configuration options:
 
-.. code-block:: shell
-
-    west build -b mimxrt1064_evk samples/basic/blinky -- -DZEPHYR_SCA_VARIANT=eclair -DECLAIR_RULES_SET=STU
+* :kconfig:option:`CONFIG_ECLAIR_RULES_SET_first_analysis`
+* :kconfig:option:`CONFIG_ECLAIR_RULES_SET_STU`
+* :kconfig:option:`CONFIG_ECLAIR_RULES_SET_STU_heavy`
+* :kconfig:option:`CONFIG_ECLAIR_RULES_SET_WP`
+* :kconfig:option:`CONFIG_ECLAIR_RULES_SET_std_lib`
 
 Generate additional report formats
 **********************************
 
-ECLAIR can generate additional report formats (e.g. DOC, ODT, XLSX) in addition to the
-default ecd file. To enable them, you can set the following variables to true:
+ECLAIR can generate additional report formats (e.g. DOC, ODT, XLSX) and
+different variants of repots in addition to the
+default ecd file. Following additional reports and report formats can be generated:
 
-* ECLAIR_metrics_tab: Metrics in spreadsheet format.
+* Metrics in spreadsheet format.
 
-* ECLAIR_reports_tab: Findings in spreadsheet format.
+* Findings in spreadsheet format.
 
-* ECLAIR_summary_txt: Summary report in plain textual format.
+* Summary report in plain textual format.
 
-* ECLAIR_summary_doc: Summary report in DOC format.
+* Summary report in DOC format.
 
-* ECLAIR_summary_odt: Summary report in ODT format.
+* Summary report in ODT format.
 
-* ECLAIR_full_txt_areas: Enable/disable detailed reports in txt format.
+* Detailed reports in txt format.
 
-* ECLAIR_full_txt: Rich/detailed report in plain textual format.
+* Detailed report in DOC format.
 
-* ECLAIR_full_doc_areas: Enable/disable detailed reports in ODT/DOC format.
+* Detailed report in ODT format.
 
-* ECLAIR_full_doc: Rich/detailed report in DOC format.
+Related configuration options:
 
-* ECLAIR_full_odt: Rich/detailed report in ODT format.
+* :kconfig:option:`CONFIG_ECLAIR_metrics_tab`
+* :kconfig:option:`CONFIG_ECLAIR_reports_tab`
+* :kconfig:option:`CONFIG_ECLAIR_summary_txt`
+* :kconfig:option:`CONFIG_ECLAIR_summary_doc`
+* :kconfig:option:`CONFIG_ECLAIR_summary_odt`
+* :kconfig:option:`CONFIG_ECLAIR_full_txt`
+* :kconfig:option:`CONFIG_ECLAIR_full_doc`
+* :kconfig:option:`CONFIG_ECLAIR_full_odt`
 
-For example, to generate a summary report in plain textual format:
+Detail level of full reports
+============================
 
-.. code-block:: shell
+The detail level of the txt and doc full reports can also be be adapted by a configuration.
+In this case the following configurations are avilable:
 
-    west build -b mimxrt1064_evk samples/basic/blinky -- -DZEPHYR_SCA_VARIANT=eclair -DECLAIR_summary_txt=true
+* Show all areas
+
+* Show only the first area
+
+Related configuration options:
+
+* :kconfig:option:`CONFIG_ECLAIR_full_doc_areas_AREAS`
+* :kconfig:option:`CONFIG_ECLAIR_full_doc_areas_FIRST_AREA`
+* :kconfig:option:`CONFIG_ECLAIR_full_txt_areas_AREAS`
+* :kconfig:option:`CONFIG_ECLAIR_full_txt_areas_FIRST_AREA`
