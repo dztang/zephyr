@@ -30,10 +30,9 @@ enum hawkbit_response {
 	HAWKBIT_PERMISSION_ERROR,
 	HAWKBIT_METADATA_ERROR,
 	HAWKBIT_DOWNLOAD_ERROR,
-	HAWKBIT_OK,
+	HAWKBIT_ALLOC_ERROR,
 	HAWKBIT_UPDATE_INSTALLED,
 	HAWKBIT_NO_UPDATE,
-	HAWKBIT_CANCEL_UPDATE,
 	HAWKBIT_NOT_INITIALIZED,
 	HAWKBIT_PROBE_IN_PROGRESS,
 };
@@ -107,10 +106,8 @@ void hawkbit_autohandler(bool auto_reschedule);
  * @return HAWKBIT_PERMISSION_ERROR fail to get the permission to access the hawkBit server.
  * @return HAWKBIT_METADATA_ERROR fail to parse or to encode the metadata.
  * @return HAWKBIT_DOWNLOAD_ERROR fail while downloading the update package.
- * @return HAWKBIT_OK if success.
  * @return HAWKBIT_UPDATE_INSTALLED has an update available.
  * @return HAWKBIT_NO_UPDATE no update available.
- * @return HAWKBIT_CANCEL_UPDATE update was cancelled.
  */
 enum hawkbit_response hawkbit_autohandler_wait(uint32_t events, k_timeout_t timeout);
 
@@ -121,7 +118,6 @@ enum hawkbit_response hawkbit_autohandler_wait(uint32_t events, k_timeout_t time
  * @return HAWKBIT_NO_UPDATE no update available.
  * @return HAWKBIT_NETWORKING_ERROR fail to connect to the hawkBit server.
  * @return HAWKBIT_METADATA_ERROR fail to parse or to encode the metadata.
- * @return HAWKBIT_OK if success.
  * @return HAWKBIT_DOWNLOAD_ERROR fail while downloading the update package.
  */
 enum hawkbit_response hawkbit_probe(void);
