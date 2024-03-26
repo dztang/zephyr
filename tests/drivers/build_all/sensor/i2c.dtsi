@@ -993,3 +993,9 @@ test_i2c_stts22h: stts22h@86 {
 	int-gpios = <&test_gpio 0 0>;
 	sampling-rate = <STTS22H_100Hz>;
 };
+
+test_i2c_adxl375: adxl375@87 {
+	compatible = "adi,adxl375";
+	reg = <0x87>;
+	stauts = "okay";
+};

@@ -352,3 +352,10 @@ test_spi_bd8lb600fs: bd8lb600fs@2b {
 		#sensor-cells = <0>;
 	};
 };
+
+test_spi_adxl375: adxl375@2c {
+	compatible = "adi,adxl375";
+	reg = <0x2c>;
+	spi-max-frequency = <0>;
+	status = "okay";
+};
