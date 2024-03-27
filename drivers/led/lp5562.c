@@ -1015,7 +1015,6 @@ static const struct led_driver_api lp5562_led_api = {
 			id, supply_gpios, {}),                          \
                 .vin_supply = DEVICE_DT_GET_OR_NULL(                    \
 			DT_INST_PHANDLE(id, vin_supply)),               \
-		.bus = I2C_DT_SPEC_INST_GET(id),			\
 		.r_current = DT_INST_PROP(id, red_output_current),	\
 		.g_current = DT_INST_PROP(id, green_output_current),	\
 		.b_current = DT_INST_PROP(id, blue_output_current),	\
