@@ -37,6 +37,10 @@ Architectures
 Bluetooth
 *********
 
+  * Added Nordic UART Service (NUS), enabled by the :kconfig:option:`CONFIG_BT_NUS`.
+    This Service exposes the ability to declare multiple instances of the GATT service,
+    allowing multiple serial endpoints to be used for different purposes.
+
 Boards & SoC Support
 ********************
 
@@ -68,6 +72,11 @@ Drivers and Sensors
 
 * Audio
 
+* Battery
+
+  * Added ``re-charge-voltage-microvolt`` property to the ``battery`` binding. This allows to set
+    limit to automatically start charging again.
+
 * Battery backed up RAM
 
 * CAN
@@ -88,6 +97,13 @@ Drivers and Sensors
   * Updated the CAN timing functions to take the minimum supported bitrate into consideration when
     validating the bitrate.
   * Made the ``sample-point`` and ``sample-point-data`` devicetree properties optional.
+
+* Charger
+
+  * Added ``chgin-to-sys-current-limit-microamp`` property to ``maxim,max20335-charger``.
+  * Added ``system-voltage-min-threshold-microvolt`` property to ``maxim,max20335-charger``.
+  * Added ``re-charge-threshold-microvolt`` property to ``maxim,max20335-charger``.
+  * Added ``thermistor-monitoring-mode`` property to ``maxim,max20335-charger``.
 
 * Clock control
 
@@ -146,6 +162,10 @@ Drivers and Sensors
 * Sensor
 
 * Serial
+
+  * Added driver to support UART over Bluetooth LE using NUS (Nordic UART Service). This driver
+    enables using Bluetooth as a transport to all the subsystems that are currently supported by
+    UART (e.g: Console, Shell, Logging).
 
 * SPI
 
@@ -213,3 +233,8 @@ LVGL
 
 Tests and Samples
 *****************
+
+  * Added snippet for easily enabling UART over Bluetooth LE by passing ``-S nus-console`` during
+    ``west build``. This snippet sets the :kconfig:option:`CONFIG_BT_NUS_AUTO_START_BLUETOOTH`
+    which allows non-Bluetooth samples that use the UART APIs to run without modifications
+    (e.g: Console and Logging examples).

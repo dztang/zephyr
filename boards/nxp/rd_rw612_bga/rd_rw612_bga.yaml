@@ -18,3 +18,8 @@ supported:
   - dma
   - gpio
   - spi
+  - i2c
+  - entropy
+  - watchdog
+  - counter
+  - hwinfo
