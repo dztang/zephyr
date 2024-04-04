@@ -1,0 +1,19 @@
+identifier: yd_stm32h750vb
+name: YD-STM32H750VB
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+ram: 1024
+flash: 128
+supported:
+  - gpio
+  - uart
+  - qspi
+  - sdhc
+  - rtc
+  - usb
+  - usb_device
+vendor: st
