@@ -123,11 +123,13 @@ SECTIONS
     SECTION_PROLOGUE(rom_start,,)
 	{
 
+#ifndef CONFIG_SKIP_ROM_START_SNIPPET_LD
 /* Located in generated directory. This file is populated by calling
  * zephyr_linker_sources(ROM_START ...). This typically contains the vector
  * table and debug information.
  */
 #include <snippets-rom-start.ld>
+#endif /* CONFIG_SKIP_ROM_START_SNIPPET_LD */
 
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
