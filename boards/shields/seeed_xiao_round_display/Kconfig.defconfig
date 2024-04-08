@@ -1,0 +1,25 @@
+# Copyright (c) 2024 Nicolas Goualard <nicolas.goualard@sfr.fr>
+# SPDX-License-Identifier: Apache-2.0
+
+if SHIELD_SEEED_XIAO_ROUND_DISPLAY
+
+if INPUT
+config INPUT_CHSC6X
+	default y
+
+endif # INPUT
+
+if DISPLAY
+
+if LVGL
+
+choice LV_COLOR_DEPTH
+	default LV_COLOR_DEPTH_16
+endchoice
+
+config LV_COLOR_16_SWAP
+	default y
+
+endif # LVGL
+endif # DISPLAY
+endif # SHIELD_XIAO_ROUND_DISPLAY
