@@ -1,0 +1,29 @@
+# Copyright (c) 2024 STMicroelectronics
+# SPDX-License-Identifier: Apache-2.0
+
+if SHIELD_x_nucleo_wb05kn1
+
+if BT
+
+config SPI
+	default y
+
+config SPI_STM32_INTERRUPT
+	default y
+	depends on SPI
+
+choice BT_HCI_BUS_TYPE
+	default BT_SPI if (DT_HAS_ST_HCI_SPI_V2_ENABLED || DT_HAS_ST_HCI_SPI_V1_ENABLED)
+	default BT_H4
+endchoice
+
+config BT_BLUENRG_ACI
+	default y
+
+# Disable Flow control
+config BT_HCI_ACL_FLOW_CONTROL
+	default n
+
+endif # BT
+
+endif
