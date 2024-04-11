@@ -426,6 +426,14 @@ config NET_MAX_MCAST_ROUTES
 	  This determines how many entries can be stored in multicast
 	  routing table.
 
+config NET_MCAST_ROUTE_MLD_REPORTS
+	bool "Report multicast routes as a part of MLDv2 reports"
+	depends on NET_ROUTE_MCAST
+	depends on NET_IPV6_MLD
+	help
+	  Determines whether a multicast route entry should be advertised
+	  in MLDv2 reports.
+
 source "subsys/net/ip/Kconfig.tcp"
 
 config NET_TEST_PROTOCOL
