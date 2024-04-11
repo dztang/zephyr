@@ -257,15 +257,19 @@ the optionally included CSIS instance by calling (:code:`cap_commander discover`
    cap_commander --help
    cap_commander - Bluetooth CAP commander shell commands
    Subcommands:
-     discover                :Discover CAS
-     cancel                  :CAP commander cancel current procedure
-     change_volume           :Change volume on all connections <volume>
-     change_volume_mute      :Change volume mute state on all connections <mute>
-     change_volume_offset    :Change volume offset per connection <volume_offset
-                              [volume_offset [...]]>
-     change_microphone_mute  :Change microphone mute state on all connections <mute>
-     change_microphone_gain  :Change microphone gain per connection <gain
-                              [gain [...]]>
+     discover                  :Discover CAS
+     cancel                    :CAP commander cancel current procedure
+     change_volume             :Change volume on all connections <volume>
+     change_volume_mute        :Change volume mute state on all connections <mute>
+     change_volume_offset      :Change volume offset per connection <volume_offset
+                                [volume_offset [...]]>
+     change_microphone_mute    :Change microphone mute state on all connections <mute>
+     change_microphone_gain    :Change microphone gain per connection <gain
+                                [gain [...]]>
+     broadcast_reception_start :Start broadcast reception with source <address:
+                                 XX:XX:XX:XX:XX:XX> <type: public/random> <adv_sid>
+                                 <broadcast_id> [<pa_interval>] [<sync_bis>]
+                                 [<metadata>]
 
 
 Before being able to perform any stream operation, the device must also perform the
@@ -436,3 +440,19 @@ and index 1 gets the second offset, etc.:
    AICS inst 0x20014188 state gain 15, mute 0, mode 0
    Gain set for inst 0x20014188
    Microphone gain change completed
+
+Starting a broadcast reception
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+   uart:~$ bt connect <device A>
+   Connected: <device A>
+   uart:~$ bap_init
+   uart:~$ cap_commander discover
+   discovery completed with CSIS
+   uart:~$ bap_broadcast_assistant discover
+   BASS discover done with 1 recv states
+   uart:~$ cap_commander broadcast_reception_start <device B> 0 4
+   Starting broadcast on 1 connections
+
