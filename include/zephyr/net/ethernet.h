@@ -196,6 +196,15 @@ enum ethernet_hw_caps {
 
 	/** TX-Injection supported */
 	ETHERNET_TXINJECTION_MODE	= BIT(20),
+
+	/**
+	 * Hint to upper layers that this Ethernet driver would like to have
+	 * a link layer header embedded with L3 data in the first packet.
+	 * By default the link layer header is placed in a separate net_buf
+	 * before the L2 payload. The driver should always be prepared to
+	 * handle the default case when link layer net_buf is a separate one.
+	 */
+	ETHERNET_EMBEDDED_LL_HEADER	= BIT(21),
 };
 
 /** @cond INTERNAL_HIDDEN */

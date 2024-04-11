@@ -608,6 +608,17 @@ static int vlan_interface_attach(struct net_if *vlan_iface,
 		NET_DBG("VLAN interface %d (%p) attached to %d (%p)",
 			net_if_get_by_iface(vlan_iface), vlan_iface,
 			net_if_get_by_iface(iface), iface);
+
+		/* If the Ethernet device wants to have the link layer header
+		 * embedded next to L2 payload, then set the link leader header
+		 * size to interface so that it can be used when allocating
+		 * packets for this interface.
+		 */
+		if (IS_ENABLED(CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION) &&
+		    net_eth_get_hw_capabilities(iface) & ETHERNET_EMBEDDED_LL_HEADER) {
+			net_if_set_reserve_ll_header_size(vlan_iface,
+							  sizeof(struct net_eth_vlan_hdr));
+		}
 	}
 
 	ctx->attached_to = iface;
