@@ -709,6 +709,21 @@ config NET_PKT_BUF_USER_DATA_SIZE
 	help
 	  User data size used in rx and tx network buffers.
 
+config NET_PKT_ALLOW_HEADROOM_ALLOCATION
+	bool "Allow headroom allocation for L2 header [EXPERIMENTAL]"
+	depends on NET_BUF_FIXED_DATA_SIZE
+	select EXPERIMENTAL
+	help
+	  Allow system to allocate L2 header at the start of the first
+	  net_buf instead of having the L2 header in a separate net_buf.
+	  This can save memory by avoiding extra allocation of net_buf
+	  just for L2 header. For normal 128 byte net_buf data size,
+	  the saving (114 bytes for Ethernet) is negligible, but if larger
+	  net_buf data size is used, then saving can be much larger.
+	  If variable data size is used, then this setting is not needed
+	  as the L2 header can be placed exactly the right size net_buf
+	  and no headroom allocation is needed.
+
 config NET_HEADERS_ALWAYS_CONTIGUOUS
 	bool
 	help

@@ -188,6 +188,12 @@ struct net_pkt {
 	uint8_t l2_processed : 1; /* Set to 1 if this packet has already been
 				   * processed by the L2
 				   */
+#if defined(CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION)
+	uint8_t l2_header_embedded : 1; /* Set to 1 if the link layer headers
+					 * are embedded in the first packet
+					 * together with the L2 payload.
+					 */
+#endif
 	uint8_t chksum_done : 1; /* Checksum has already been computed for
 				  * the packet.
 				  */
@@ -416,6 +422,26 @@ static inline void net_pkt_set_l2_processed(struct net_pkt *pkt,
 					    bool is_l2_processed)
 {
 	pkt->l2_processed = is_l2_processed;
+}
+
+static inline bool net_pkt_is_l2_header_embedded(struct net_pkt *pkt)
+{
+#if defined(CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION)
+	return !!(pkt->l2_header_embedded);
+#else
+	return false;
+#endif
+}
+
+static inline void net_pkt_set_l2_header_embedded(struct net_pkt *pkt,
+						  bool is_l2_header_embedded)
+{
+#if defined(CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION)
+	pkt->l2_header_embedded = is_l2_header_embedded;
+#else
+	ARG_UNUSED(pkt);
+	ARG_UNUSED(is_l2_header_embedded);
+#endif
 }
 
 static inline bool net_pkt_is_chksum_done(struct net_pkt *pkt)

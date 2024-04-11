@@ -622,6 +622,19 @@ struct net_if_dev {
 
 	/** RFC 2863 operational status */
 	enum net_if_oper_state oper_state;
+
+#if defined(CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION)
+	/** The link layer header size. If set to 0 (default), a separate net_buf
+	 * containing the link layer header is placed in the chain of net_bufs when
+	 * allocating the network buffers for sending.
+	 * If this is > 0, and the corresponding L2 supports this, link layer
+	 * headroom space is allocated in the first net_buf right before the L3
+	 * header. If the L2 does not support this, then this value is ignored.
+	 * Note that this cannot be larger than CONFIG_NET_BUF_DATA_SIZE if fixed
+	 * size net_bufs are used.
+	 */
+	uint8_t reserve_ll_header;
+#endif /* CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION */
 };
 
 /**
@@ -2933,6 +2946,27 @@ int net_if_set_name(struct net_if *iface, const char *buf);
  * @return Interface index
  */
 int net_if_get_by_name(const char *name);
+
+/**
+ * @brief Get the size of the embedded link layer header.
+ *        If the link layer header is not reserved in the first
+ *        net_buf and needs a separate net_buf, then this function
+ *        will return 0.
+ *
+ * @param iface Network interface to get the information.
+ *
+ * @return Size of the embedded link layer header.
+ */
+size_t net_if_reserve_ll_header_size(struct net_if *iface);
+
+/**
+ * @brief Set the size of the embedded link layer header.
+ *
+ * @param iface Network interface to get the information.
+ * @param reserve Size of the link layer header for this interface.
+ */
+void net_if_set_reserve_ll_header_size(struct net_if *iface,
+				       size_t reserve);
 
 /** @cond INTERNAL_HIDDEN */
 struct net_if_api {
