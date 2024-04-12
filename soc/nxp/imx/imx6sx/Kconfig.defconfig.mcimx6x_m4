@@ -8,4 +8,11 @@ if SOC_MCIMX6X_M4
 config FPU
 	default y
 
+
+#By default ROM_START is relocated to address 0 in a 1K region, allowing imx_rproc
+#to translate it to TCM_L address
+#Select the relocation if the chosen flash is not the TCML
+config ROMSTART_RELOCATION_ROM
+	default y if $(dt_chosen_reg_addr_hex,$(DT_CHOSEN_Z_FLASH))!=$(dt_nodelabel_reg_addr_hex,tcml)
+
 endif # SOC_MCIMX6X_M4

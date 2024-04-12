@@ -11,4 +11,11 @@ config SYS_CLOCK_HW_CYCLES_PER_SEC
 config GPIO
 	default y
 
+#By default ROM_START is relocated to address 0 in a 1K region, allowing imx_rproc
+#to translate it to OCRAM_S address
+#Select the relocation if the chosen flash is not the OCRAM_S
+config ROMSTART_RELOCATION_ROM
+	default y if $(dt_chosen_reg_addr_hex,$(DT_CHOSEN_Z_FLASH))!=$(dt_nodelabel_reg_addr_hex,ocram_s_code)
+
+
 endif # SOC_MCIMX7D_M4
