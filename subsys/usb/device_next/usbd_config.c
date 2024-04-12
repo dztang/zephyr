@@ -134,7 +134,7 @@ int usbd_config_attrib_rwup(struct usbd_contex *const uds_ctx,
 	struct udc_device_caps caps;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_enabled(uds_ctx)) {
 		ret = -EALREADY;
@@ -174,7 +174,7 @@ int usbd_config_attrib_self(struct usbd_contex *const uds_ctx,
 	struct usb_cfg_descriptor *desc;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_enabled(uds_ctx)) {
 		ret = -EALREADY;
@@ -207,7 +207,7 @@ int usbd_config_maxpower(struct usbd_contex *const uds_ctx,
 	struct usb_cfg_descriptor *desc;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_enabled(uds_ctx)) {
 		ret = -EALREADY;
@@ -235,7 +235,7 @@ int usbd_add_configuration(struct usbd_contex *const uds_ctx,
 	struct usb_cfg_descriptor *desc = cfg_nd->desc;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_initialized(uds_ctx)) {
 		LOG_ERR("USB device support is initialized");

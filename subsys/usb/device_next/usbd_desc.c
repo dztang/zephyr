@@ -207,7 +207,7 @@ int usbd_add_descriptor(struct usbd_contex *const uds_ctx,
 	struct usb_desc_header *head;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (dev_desc == NULL || usbd_is_initialized(uds_ctx)) {
 		ret = -EPERM;

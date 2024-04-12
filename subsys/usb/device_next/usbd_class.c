@@ -296,7 +296,7 @@ int usbd_register_class(struct usbd_contex *const uds_ctx,
 		return -ENODEV;
 	}
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_initialized(uds_ctx)) {
 		LOG_ERR("USB device support is initialized");
@@ -343,7 +343,7 @@ int usbd_unregister_class(struct usbd_contex *const uds_ctx,
 		return -ENODEV;
 	}
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_initialized(uds_ctx)) {
 		LOG_ERR("USB device support is initialized");

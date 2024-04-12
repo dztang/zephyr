@@ -79,9 +79,12 @@ static inline void usbd_status_suspended(struct usbd_contex *const uds_ctx,
  *
  * @param[in] node Pointer to a device context
  */
-static inline void usbd_device_lock(struct usbd_contex *const uds_ctx)
+static inline int usbd_device_lock(struct usbd_contex *const uds_ctx,
+				   const bool wait)
 {
-	k_mutex_lock(&uds_ctx->mutex, K_FOREVER);
+	const k_timeout_t t = wait ? K_FOREVER : K_NO_WAIT;
+
+	return k_mutex_lock(&uds_ctx->mutex, t);
 }
 
 /**

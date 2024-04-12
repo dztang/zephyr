@@ -80,7 +80,7 @@ static int enable_usb_device_next(void)
 		return -ENODEV;
 	}
 
-	err = usbd_enable(sample_usbd);
+	err = usbd_enable(sample_usbd, true);
 	if (err) {
 		LOG_ERR("Failed to enable device support");
 		return err;

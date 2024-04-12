@@ -92,7 +92,7 @@ int usbd_msg_register_cb(struct usbd_contex *const uds_ctx,
 {
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (uds_ctx->msg_cb != NULL) {
 		ret = -EALREADY;

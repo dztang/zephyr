@@ -26,7 +26,7 @@ int usbd_device_set_bcd(struct usbd_contex *const uds_ctx,
 	struct usb_device_descriptor *desc = uds_ctx->desc;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_enabled(uds_ctx)) {
 		ret = -EALREADY;
@@ -46,7 +46,7 @@ int usbd_device_set_vid(struct usbd_contex *const uds_ctx,
 	struct usb_device_descriptor *desc = uds_ctx->desc;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_enabled(uds_ctx)) {
 		ret = -EALREADY;
@@ -66,7 +66,7 @@ int usbd_device_set_pid(struct usbd_contex *const uds_ctx,
 	struct usb_device_descriptor *desc = uds_ctx->desc;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_enabled(uds_ctx)) {
 		ret = -EALREADY;
@@ -87,7 +87,7 @@ int usbd_device_set_code_triple(struct usbd_contex *const uds_ctx,
 	struct usb_device_descriptor *desc = uds_ctx->desc;
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (usbd_is_enabled(uds_ctx)) {
 		ret = -EALREADY;
@@ -108,7 +108,7 @@ int usbd_wakeup_request(struct usbd_contex *const uds_ctx)
 	struct udc_device_caps caps = udc_caps(uds_ctx->dev);
 	int ret = 0;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (!caps.rwup) {
 		LOG_ERR("Remote wakeup feature not supported");
@@ -139,7 +139,7 @@ int usbd_init(struct usbd_contex *const uds_ctx)
 {
 	int ret;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	if (uds_ctx->dev == NULL) {
 		ret = -ENODEV;
@@ -171,11 +171,14 @@ init_exit:
 	return ret;
 }
 
-int usbd_enable(struct usbd_contex *const uds_ctx)
+int usbd_enable(struct usbd_contex *const uds_ctx, const bool wait)
 {
 	int ret;
 
-	usbd_device_lock(uds_ctx);
+	ret = usbd_device_lock(uds_ctx, wait);
+	if (ret) {
+		return ret;
+	}
 
 	if (!usbd_is_initialized(uds_ctx)) {
 		LOG_WRN("USB device support is not initialized");
@@ -217,7 +220,7 @@ int usbd_disable(struct usbd_contex *const uds_ctx)
 		return -EALREADY;
 	}
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	ret = usbd_config_set(uds_ctx, 0);
 	if (ret) {
@@ -240,7 +243,7 @@ int usbd_shutdown(struct usbd_contex *const uds_ctx)
 {
 	int ret;
 
-	usbd_device_lock(uds_ctx);
+	usbd_device_lock(uds_ctx, true);
 
 	/* TODO: control request dequeue ? */
 	ret = usbd_device_shutdown_core(uds_ctx);

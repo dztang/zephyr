@@ -547,13 +547,15 @@ int usbd_init(struct usbd_contex *uds_ctx);
 /**
  * @brief Enable the USB device support and registered class instances
  *
- * This function enables the USB device support.
+ * This function enables the USB device support. If the wait argument is true,
+ * the stack waits for exclusive access, otherwise it does not wait and may
+ * return EBUSY if access is locked.
  *
  * @param[in] uds_ctx Pointer to USB device support context
  *
  * @return 0 on success, other values on fail.
  */
-int usbd_enable(struct usbd_contex *uds_ctx);
+int usbd_enable(struct usbd_contex *uds_ctx, const bool wait);
 
 /**
  * @brief Disable the USB device support
