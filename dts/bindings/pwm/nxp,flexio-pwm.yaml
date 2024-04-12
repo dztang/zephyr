@@ -1,0 +1,46 @@
+# Copyright 2024 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: NXP Flexio PWM controller
+
+compatible: "nxp,flexio-pwm"
+
+include: [pwm-controller.yaml, pinctrl-device.yaml, base.yaml]
+
+properties:
+  pinctrl-0:
+    required: true
+
+  pinctrl-names:
+    required: true
+
+  "#pwm-cells":
+    const: 3
+
+pwm-cells:
+  - channel
+  # Period in terms of nanoseconds
+  - period
+  - flags
+
+child-binding:
+  description: |
+    Flexio PWM channel configuration.
+
+  properties:
+    pin-id:
+      type: int
+      required: true
+
+    polarity:
+      type: int
+
+    duty-cycle:
+      type: int
+
+    period:
+      type: int
+
+    prescaler:
+      type: int
+      enum: [0, 4, 5]
