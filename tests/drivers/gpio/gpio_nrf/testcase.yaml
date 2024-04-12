@@ -1,0 +1,10 @@
+common:
+  tags: drivers gpio
+  depends_on: gpio
+  harness: ztest
+tests:
+  drivers.gpio.gpio_nrf:
+    filter: dt_compat_enabled("nordic,nrf-gpio")
+    platform_exclude:
+      - raytac_mdbt53v_db_40/nrf5340/cpunet
+      - actinius_icarus_som/nrf9160/ns
