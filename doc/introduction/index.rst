@@ -23,6 +23,21 @@ The Zephyr kernel supports multiple architectures, including:
 
 The full list of supported boards based on these architectures can be found :ref:`here <boards>`.
 
+In the context of the Zephyr OS, a subsystem refers to a logically distinct
+part of the operating system that handles specific functionality or provides
+certain services. These subsystems can include components such as networking,
+file systems, device driver classes, power management, and communication protocols,
+among others. Each subsystem is designed to be modular and can be configured,
+customized, and extended to meet the requirements of different embedded
+applications.
+
+Developers working with the Zephyr Project typically interact with these
+subsystems to build their embedded applications, leveraging the functionality
+and services provided by each subsystem to implement the desired features and
+behavior in their devices. The modularity and flexibility of Zephyr's subsystems
+make it easier for developers to build and maintain embedded applications for
+various use cases and target hardware platforms.
+
 Licensing
 *********
 
