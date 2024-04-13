@@ -4,25 +4,7 @@
 set(LLEXT_EDK ${PROJECT_BINARY_DIR}/${LLEXT_EDK_NAME})
 set(LLEXT_EDK_INC ${LLEXT_EDK}/include)
 
-string(REGEX REPLACE "[^a-zA-Z0-9]" "_" llext_edk_name_sane ${LLEXT_EDK_NAME})
-string(TOUPPER ${llext_edk_name_sane} llext_edk_name_sane)
-set(install_dir_var "${llext_edk_name_sane}_INSTALL_DIR")
-
-cmake_path(CONVERT "${INTERFACE_INCLUDE_DIRECTORIES}" TO_CMAKE_PATH_LIST INCLUDE_DIRS)
-
-set(autoconf_h_edk ${LLEXT_EDK_INC}/${AUTOCONF_H})
-cmake_path(RELATIVE_PATH AUTOCONF_H BASE_DIRECTORY ${PROJECT_BINARY_DIR} OUTPUT_VARIABLE autoconf_h_rel)
-
-list(APPEND base_flags_make
-    "${LLEXT_CFLAGS} -imacros\$(${install_dir_var})/include/zephyr/${autoconf_h_rel}")
-list(APPEND base_flags_cmake
-    "${LLEXT_CFLAGS} -imacros\${${install_dir_var}}/include/zephyr/${autoconf_h_rel}")
-
-file(MAKE_DIRECTORY ${LLEXT_EDK_INC})
-foreach(dir ${INCLUDE_DIRS})
-    if (NOT EXISTS ${dir})
-        continue()
-    endif()
+function(relative_dir dir relative_out bindir_out)
     cmake_path(IS_PREFIX PROJECT_BINARY_DIR ${dir} NORMALIZE to_prj_bindir)
     cmake_path(IS_PREFIX ZEPHYR_BASE ${dir} NORMALIZE to_zephyr_base)
     cmake_path(IS_PREFIX WEST_TOPDIR ${dir} NORMALIZE to_west_topdir)
@@ -53,6 +35,58 @@ foreach(dir ${INCLUDE_DIRS})
         set(dest ${LLEXT_EDK_INC}/${dir})
     endif()
 
+    set(${relative_out} ${dest} PARENT_SCOPE)
+    if(to_prj_bindir)
+        set(${bindir_out} TRUE PARENT_SCOPE)
+    else()
+        set(${bindir_out} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
+string(REGEX REPLACE "[^a-zA-Z0-9]" "_" llext_edk_name_sane ${LLEXT_EDK_NAME})
+string(TOUPPER ${llext_edk_name_sane} llext_edk_name_sane)
+set(install_dir_var "${llext_edk_name_sane}_INSTALL_DIR")
+
+separate_arguments(LLEXT_CFLAGS NATIVE_COMMAND ${LLEXT_CFLAGS})
+
+set(make_relative FALSE)
+foreach(flag ${LLEXT_CFLAGS})
+    if (flag STREQUAL "-imacros")
+        set(make_relative TRUE)
+    elseif (make_relative)
+        set(make_relative FALSE)
+        cmake_path(GET flag PARENT_PATH parent)
+        cmake_path(GET flag FILENAME name)
+        relative_dir(${parent} dest bindir)
+        cmake_path(RELATIVE_PATH dest BASE_DIRECTORY ${LLEXT_EDK} OUTPUT_VARIABLE dest_rel)
+        if(bindir)
+            list(APPEND imacros_gen_make "-imacros\$(${install_dir_var})/${dest_rel}/${name}")
+            list(APPEND imacros_gen_cmake "-imacros\${${install_dir_var}}/${dest_rel}/${name}")
+        else()
+            list(APPEND imacros_make "-imacros\$(${install_dir_var})/${dest_rel}/${name}")
+            list(APPEND imacros_cmake "-imacros\${${install_dir_var}}/${dest_rel}/${name}")
+        endif()
+    else()
+        list(APPEND new_cflags ${flag})
+    endif()
+endforeach()
+set(LLEXT_CFLAGS ${new_cflags})
+
+cmake_path(CONVERT "${INTERFACE_INCLUDE_DIRECTORIES}" TO_CMAKE_PATH_LIST INCLUDE_DIRS)
+
+set(autoconf_h_edk ${LLEXT_EDK_INC}/${AUTOCONF_H})
+cmake_path(RELATIVE_PATH AUTOCONF_H BASE_DIRECTORY ${PROJECT_BINARY_DIR} OUTPUT_VARIABLE autoconf_h_rel)
+
+list(APPEND base_flags_make ${LLEXT_CFLAGS} ${imacros_make})
+list(APPEND base_flags_cmake ${LLEXT_CFLAGS} ${imacros_cmake})
+
+file(MAKE_DIRECTORY ${LLEXT_EDK_INC})
+foreach(dir ${INCLUDE_DIRS})
+    if (NOT EXISTS ${dir})
+        continue()
+    endif()
+
+    relative_dir(${dir} dest bindir)
     # Use destination parent, as the last part of the source directory is copied as well
     cmake_path(GET dest PARENT_PATH dest_p)
 
@@ -60,10 +94,10 @@ foreach(dir ${INCLUDE_DIRS})
     file(COPY ${dir} DESTINATION ${dest_p} FILES_MATCHING PATTERN "*.h")
 
     cmake_path(RELATIVE_PATH dest BASE_DIRECTORY ${LLEXT_EDK} OUTPUT_VARIABLE dest_rel)
-    if(to_prj_bindir)
+    if(bindir)
         list(APPEND inc_gen_flags_make "-I\$(${install_dir_var})/${dest_rel}")
         list(APPEND inc_gen_flags_cmake "-I\${${install_dir_var}}/${dest_rel}")
-    else(to_zephyr_base)
+    else()
         list(APPEND inc_flags_make "-I\$(${install_dir_var})/${dest_rel}")
         list(APPEND inc_flags_cmake "-I\${${install_dir_var}}/${dest_rel}")
     endif()
@@ -75,7 +109,7 @@ if(CONFIG_LLEXT_EDK_USERSPACE_ONLY)
 endif()
 
 # Generate flags for Makefile
-list(APPEND all_flags_make ${base_flags_make} ${inc_gen_flags_make} ${inc_flags_make})
+list(APPEND all_flags_make ${base_flags_make} ${imacros_gen_make} ${inc_gen_flags_make} ${inc_flags_make})
 list(JOIN all_flags_make " " all_flags_str)
 file(WRITE ${LLEXT_EDK}/Makefile.cflags "LLEXT_CFLAGS = ${all_flags_str}")
 
@@ -87,8 +121,10 @@ file(APPEND ${LLEXT_EDK}/Makefile.cflags "\n\nLLEXT_GENERATED_INCLUDE_CFLAGS = $
 
 file(APPEND ${LLEXT_EDK}/Makefile.cflags "\n\nLLEXT_BASE_CFLAGS = ${base_flags_make}")
 
+file(APPEND ${LLEXT_EDK}/Makefile.cflags "\n\nLLEXT_GENERATED_IMACROS_CFLAGS = ${imacros_gen_make}")
+
 # Generate flags for CMake
-list(APPEND all_flags_cmake ${base_flags_cmake} ${inc_gen_flags_cmake} ${inc_flags_cmake})
+list(APPEND all_flags_cmake ${base_flags_cmake} ${imacros_gen_cmake} ${inc_gen_flags_cmake} ${inc_flags_cmake})
 list(JOIN all_flags_cmake " " all_flags_str)
 file(WRITE ${LLEXT_EDK}/cmake.cflags "set(LLEXT_CFLAGS ${all_flags_str})")
 
@@ -99,6 +135,8 @@ list(JOIN inc_gen_flags_cmake " " inc_gen_flags_str)
 file(APPEND ${LLEXT_EDK}/cmake.cflags "\n\nset(LLEXT_GENERATED_INCLUDE_CFLAGS ${inc_gen_flags_str})")
 
 file(APPEND ${LLEXT_EDK}/cmake.cflags "\n\nset(LLEXT_BASE_CFLAGS ${base_flags_cmake})")
+
+file(APPEND ${LLEXT_EDK}/cmake.cflags "\n\nset(LLEXT_GENERATED_IMACROS_CFLAGS ${imacros_gen_cmake})")
 
 # Generate the tarball
 file(ARCHIVE_CREATE
