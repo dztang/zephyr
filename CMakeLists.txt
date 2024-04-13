@@ -2026,6 +2026,17 @@ endif()
 
 if(CONFIG_LLEXT_EDK)
     set(LLEXT_EDK_FILE ${PROJECT_BINARY_DIR}/${CONFIG_LLEXT_EDK_NAME}.tar.xz)
+
+    # TODO maybe generate flags for C CXX ASM
+    zephyr_get_compile_options_for_lang(C zephyr_flags)
+
+    # Filter out non LLEXT and LLEXT_EDK flags - and add required ones
+    llext_filter_zephyr_flags(LLEXT_REMOVE_FLAGS ${zephyr_flags} llext_cflags)
+    llext_filter_zephyr_flags(LLEXT_EDK_REMOVE_FLAGS ${llext_cflags} llext_cflags)
+
+    list(APPEND llext_cflags ${LLEXT_APPEND_FLAGS})
+    list(APPEND llext_cflags ${LLEXT_EDK_APPEND_FLAGS})
+
     add_custom_command(
         OUTPUT ${LLEXT_EDK_FILE}
         # Regenerate syscalls in case CONFIG_LLEXT_EDK_USERSPACE_ONLY
@@ -2047,7 +2058,7 @@ if(CONFIG_LLEXT_EDK)
             -DINTERFACE_INCLUDE_DIRECTORIES="$<JOIN:$<TARGET_PROPERTY:zephyr_interface,INTERFACE_INCLUDE_DIRECTORIES>,:>"
             -DLLEXT_EDK_FILE=${LLEXT_EDK_FILE}
             -DAUTOCONF_H=${AUTOCONF_H}
-            -DLLEXT_CFLAGS="${LLEXT_CFLAGS}"
+            -DLLEXT_CFLAGS="${llext_cflags}"
             -DLLEXT_EDK_NAME=${CONFIG_LLEXT_EDK_NAME}
             -DWEST_TOPDIR=${WEST_TOPDIR}
             -DZEPHYR_BASE=${ZEPHYR_BASE}
