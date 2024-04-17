@@ -144,8 +144,11 @@ RT1170 EVKB (`mimxrt1170_evk@B//cm7/cm4`)
 +-----------+------------+-------------------------------------+-----------------+-----------------+
 | WATCHDOG  | on-chip    | watchdog                            | Supported (M7)  | Supported (M7)  |
 +-----------+------------+-------------------------------------+-----------------+-----------------+
-| ENET      | on-chip    | ethernet - 10/100M (ENET_QOS or     | Supported (M7)  | No support      |
-| ENET1G    |            | GigE not supported yet)             |                 |                 |
+| ENET      | on-chip    | ethernet - 10/100M                  | Supported (M7)  | No support      |
++-----------+------------+-------------------------------------+-----------------+-----------------+
+| ENET1G    | on-chip    | ethernet - 10/100/1000M             | Supported (M7)  | No support      |
++-----------+------------+-------------------------------------+-----------------+-----------------+
+| ENET_QOS  | on-chip    | ethernet quality of service module  | No support      | No support      |
 +-----------+------------+-------------------------------------+-----------------+-----------------+
 | SAI       | on-chip    | i2s                                 | Supported       | No support      |
 +-----------+------------+-------------------------------------+-----------------+-----------------+
@@ -445,8 +448,8 @@ should see the following message in the terminal:
 .. _NXP MCUXpresso for Visual Studio Code:
 	https://www.nxp.com/design/software/development-software/mcuxpresso-software-and-tools-/mcuxpresso-for-visual-studio-code:MCUXPRESSO-VSC
 
-Experimental ENET Driver
-========================
+Experimental ENET/ENET1G Driver
+===============================
 
 Current default ethernet driver is eth_mcux, with binding `nxp,kinetis-ethernet`. There is a new
 driver with binding `nxp,enet`, which is experimental and undergoing development, but will have
@@ -454,3 +457,6 @@ enhanced capability, such as not hardcoding code for only one phy in the driver 
 
 To build for this EVK with the new driver, include the experimental overlay to west build with
 the option `-DEXTRA_DTC_OVERLAY_FILE=nxp,enet-experimental.overlay`.
+
+To use the 1G Ethernet instance ENET1G, include the experimental overlay to west build with
+the option `-DEXTRA_DTC_OVERLAY_FILE=nxp,enet1g-experimental.overlay` instead.
