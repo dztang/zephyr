@@ -25,6 +25,10 @@
 		zephyr,sram = &cpurad_ram0;
 		zephyr,shell-uart = &uart135;
 	};
+
+	aliases {
+		resetinfo = &cpurad_resetinfo;
+	};
 };
 
 &shared_ram3x_region {
