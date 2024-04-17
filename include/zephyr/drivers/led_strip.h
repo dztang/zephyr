@@ -110,6 +110,19 @@ static inline int led_strip_update_rgb(const struct device *dev,
 	const struct led_strip_driver_api *api =
 		(const struct led_strip_driver_api *)dev->api;
 
+	if (api->length) {
+		/* Ensure supplied pixel size is valid for this device */
+		int length = api->length(dev);
+
+		if (length < 0) {
+			return length;
+		}
+
+		if ((size_t)length < num_pixels) {
+			return -ERANGE;
+		}
+	}
+
 	return api->update_rgb(dev, pixels, num_pixels);
 }
 
