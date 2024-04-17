@@ -729,6 +729,42 @@ int net_route_foreach(net_route_cb_t cb, void *user_data)
 static
 struct net_route_entry_mcast route_mcast_entries[CONFIG_NET_MAX_MCAST_ROUTES];
 
+#if defined(CONFIG_NET_MCAST_ROUTE_MLD_REPORTS)
+struct mcast_route_mld_event {
+	struct in6_addr *addr;
+	uint8_t mode;
+};
+
+static void send_mld_event(struct net_if *iface, void *user_data)
+{
+	struct mcast_route_mld_event *event = (struct mcast_route_mld_event *)user_data;
+
+	/* Do not send events for ifaces without IPv6, without MLD, already or still in
+	 * a given group
+	 */
+	if (!iface->config.ip.ipv6 || net_if_flag_is_set(iface, NET_IF_IPV6_NO_MLD) ||
+	    net_if_ipv6_maddr_lookup(event->addr, &iface)) {
+		return;
+	}
+
+	net_ipv6_mld_send_single(iface, event->addr, event->mode);
+}
+
+static void propagate_mld_event(struct net_route_entry_mcast *route, bool route_added)
+{
+	struct mcast_route_mld_event mld_event;
+
+	/* Apply only for complete addresses */
+	if (route->prefix_len == 128) {
+		mld_event.addr = &route->group;
+		mld_event.mode = route_added ? NET_IPV6_MLDv2_MODE_IS_EXCLUDE :
+					       NET_IPV6_MLDv2_MODE_IS_INCLUDE;
+
+		net_if_foreach(send_mld_event, &mld_event);
+	}
+}
+#endif
+
 int net_route_mcast_forward_packet(struct net_pkt *pkt,
 				   const struct net_ipv6_hdr *hdr)
 {
@@ -823,6 +859,10 @@ struct net_route_entry_mcast *net_route_mcast_add(struct net_if *iface,
 			route->iface = iface;
 			route->is_used = true;
 
+#if defined(CONFIG_NET_MCAST_ROUTE_MLD_REPORTS)
+			propagate_mld_event(route, true);
+#endif
+
 			net_ipv6_nbr_unlock();
 			return route;
 		}
@@ -842,6 +882,10 @@ bool net_route_mcast_del(struct net_route_entry_mcast *route)
 	NET_ASSERT(route->is_used,
 		   "Multicast route %p to %s was already removed", route,
 		   net_sprint_ipv6_addr(&route->group));
+
+#if defined(CONFIG_NET_MCAST_ROUTE_MLD_REPORTS)
+	propagate_mld_event(route, false);
+#endif
 
 	route->is_used = false;
 
