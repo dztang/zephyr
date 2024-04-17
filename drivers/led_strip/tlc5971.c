@@ -269,6 +269,17 @@ static int tlc5971_update_channels(const struct device *dev, uint8_t *channels, 
 	return -ENOTSUP;
 }
 
+static int tlc5971_length(const struct device *dev)
+{
+	const struct tlc5971_config *cfg = dev->config;
+
+	if (!spi_is_ready_dt(&cfg->bus)) {
+		return -ENODEV;
+	}
+
+	return config->num_pixels;
+}
+
 int tlc5971_set_global_brightness(const struct device *dev, struct led_rgb pixel)
 {
 	const struct tlc5971_config *cfg = dev->config;
@@ -334,6 +345,7 @@ static int tlc5971_init(const struct device *dev)
 static const struct led_strip_driver_api tlc5971_api = {
 	.update_rgb = tlc5971_update_rgb,
 	.update_channels = tlc5971_update_channels,
+	.length = tlc5971_length,
 };
 
 #define TLC5971_DATA_BUFFER_LENGTH(inst)                                                           \
