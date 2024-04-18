@@ -137,3 +137,7 @@
 &flexpwm1_pwm0 {
 	status = "okay";
 };
+
+&lpadc0 {
+	status = "okay";
+};
