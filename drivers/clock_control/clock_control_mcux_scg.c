@@ -60,33 +60,55 @@ static int mcux_scg_get_rate(const struct device *dev,
 	case KINETIS_SCG_FIRC_CLK:
 		clock_name = kCLOCK_ScgFircClk;
 		break;
+#if (FSL_FEATURE_SCG_HAS_SPLL)
 	case KINETIS_SCG_SPLL_CLK:
 		clock_name = kCLOCK_ScgSysPllClk;
 		break;
+#endif
+#if (FSL_FEATURE_SCG_HAS_LPFLL)
+	case KINETIS_SCG_SPLL_CLK:
+		clock_name = kCLOCK_ScgLpFllClk;
+		break;
+#endif
+#if (FSL_FEATURE_SCG_HAS_SOSCDIV1)
 	case KINETIS_SCG_SOSC_ASYNC_DIV1_CLK:
 		clock_name = kCLOCK_ScgSysOscAsyncDiv1Clk;
 		break;
+#endif
 	case KINETIS_SCG_SOSC_ASYNC_DIV2_CLK:
 		clock_name = kCLOCK_ScgSysOscAsyncDiv2Clk;
 		break;
+#if (FSL_FEATURE_SCG_HAS_SIRCDIV1)
 	case KINETIS_SCG_SIRC_ASYNC_DIV1_CLK:
 		clock_name = kCLOCK_ScgSircAsyncDiv1Clk;
 		break;
+#endif
 	case KINETIS_SCG_SIRC_ASYNC_DIV2_CLK:
 		clock_name = kCLOCK_ScgSircAsyncDiv2Clk;
 		break;
+#if (FSL_FEATURE_SCG_HAS_FIRCDIV1)
 	case KINETIS_SCG_FIRC_ASYNC_DIV1_CLK:
 		clock_name = kCLOCK_ScgFircAsyncDiv1Clk;
 		break;
+#endif
 	case KINETIS_SCG_FIRC_ASYNC_DIV2_CLK:
 		clock_name = kCLOCK_ScgFircAsyncDiv2Clk;
 		break;
+#if (FSL_FEATURE_SCG_HAS_SPLLDIV1)
 	case KINETIS_SCG_SPLL_ASYNC_DIV1_CLK:
 		clock_name = kCLOCK_ScgSysPllAsyncDiv1Clk;
 		break;
+#endif
+#if (FSL_FEATURE_SCG_HAS_SPLL)
 	case KINETIS_SCG_SPLL_ASYNC_DIV2_CLK:
 		clock_name = kCLOCK_ScgSysPllAsyncDiv2Clk;
 		break;
+#endif
+#if (FSL_FEATURE_SCG_HAS_FLLDIV1)
+	case KINETIS_SCG_LPFLL_ASYNC_DIV2_CLK:
+		clock_name = kCLOCK_ScgSysLPFllAsyncDiv2Clk;
+		break;
+#endif
 	default:
 		LOG_ERR("Unsupported clock name");
 		return -EINVAL;

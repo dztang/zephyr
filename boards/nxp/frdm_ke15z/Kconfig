@@ -1,0 +1,12 @@
+# FRDM-KE15Z board configuration
+# Copyright 2024 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_FRDM_KE15Z
+
+config BOARD_FRDM_KE15Z_FLEXIO_CLKOUT
+	bool "CLKOUT signal on FlexIO header"
+	help
+	  Enable the CLKOUT signal on FlexIO header pin 7 (PTE10).
+
+endif # BOARD_FRDM_KE15Z
