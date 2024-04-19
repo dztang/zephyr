@@ -513,6 +513,7 @@ int i3c_device_basic_info_get(struct i3c_device_desc *target)
 	struct i3c_ccc_getdcr dcr = {0};
 	struct i3c_ccc_mrl mrl = {0};
 	struct i3c_ccc_mwl mwl = {0};
+	union i3c_ccc_getcaps caps = {0};
 
 	/*
 	 * Since some CCC functions requires BCR to function
@@ -546,6 +547,14 @@ int i3c_device_basic_info_get(struct i3c_device_desc *target)
 	if (i3c_ccc_do_getmwl(target, &mwl) != 0) {
 		/* GETMWL may be optionally supported if no settable limit */
 		LOG_DBG("No settable limit for GETMWL");
+	}
+
+	if (target->bcr & I3C_BCR_ADV_CAPABILITIES) {
+		ret = i3c_ccc_do_getcaps_fmt1(target, &caps);
+		if (ret != 0) {
+			goto out;
+		}
+		memcpy(&target->getcaps, &caps, sizeof(target->getcaps));
 	}
 
 	target->dcr = dcr.dcr;
