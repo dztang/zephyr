@@ -14,17 +14,11 @@
 int main(void)
 {
 	const struct device *const display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+	struct cfb_display disp;
 	int err;
 
 	if (!device_is_ready(display)) {
 		printk("Display device not ready\n");
-	}
-
-	if (display_set_pixel_format(display, PIXEL_FORMAT_MONO10) != 0) {
-		if (display_set_pixel_format(display, PIXEL_FORMAT_MONO01) != 0) {
-			printk("Failed to set required pixel format");
-			return 0;
-		}
 	}
 
 	if (display_blanking_off(display) != 0) {
@@ -32,22 +26,22 @@ int main(void)
 		return 0;
 	}
 
-	err = cfb_framebuffer_init(display);
+	err = cfb_display_init(&disp, display);
 	if (err) {
 		printk("Could not initialize framebuffer (err %d)\n", err);
 	}
 
-	err = cfb_framebuffer_clear(display, true);
+	err = cfb_clear(&disp.fb, true);
 	if (err) {
 		printk("Could not clear framebuffer (err %d)\n", err);
 	}
 
-	err = cfb_print(display, "123456", 0, 0);
+	err = cfb_print(&disp.fb, "123456", 0, 0);
 	if (err) {
 		printk("Could not display custom font (err %d)\n", err);
 	}
 
-	err = cfb_framebuffer_finalize(display);
+	err = cfb_finalize(&disp.fb);
 	if (err) {
 		printk("Could not finalize framebuffer (err %d)\n", err);
 	}
