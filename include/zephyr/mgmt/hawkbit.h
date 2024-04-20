@@ -13,8 +13,6 @@
 #ifndef ZEPHYR_INCLUDE_MGMT_HAWKBIT_H_
 #define ZEPHYR_INCLUDE_MGMT_HAWKBIT_H_
 
-#define HAWKBIT_JSON_URL "/default/controller/v1"
-
 /**
  * @brief Response message from hawkBit.
  *
