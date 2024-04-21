@@ -286,6 +286,18 @@ Modem
 Shell
 =====
 
+State Machine Framework
+=======================
+
+* The :c:macro:`SMF_CREATE_STATE` macro now always takes 5 arguments. The amount of arguments is
+  now independent of the values of :kconfig:option:`CONFIG_SMF_ANCESTOR_SUPPORT` and
+  :kconfig:option:`CONFIG_SMF_INITIAL_TRANSITION`. If the additional arguments are not used, they
+  have to be set to ``NULL``. (:github:`71250`)
+* SMF now follows a more UML-like transition flow when the transition source is a parent of the
+  state called by :c:func:`smf_run_state`. Exit actions up to (but not including) the LEast Common
+  Ancestor of the transition source and target state will be executed, as will entry actions from
+  (but not including) the LCA down to the target state. (:github:`71675`)
+
 ZBus
 ====
 

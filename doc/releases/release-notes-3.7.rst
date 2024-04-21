@@ -265,6 +265,12 @@ Libraries / Subsystems
 
 * SD
 
+* State Machine Framework
+
+  * The :c:macro:`SMF_CREATE_STATE` macro now always takes 5 arguments.
+  * Transition sources that are parents of the state that was run now choose the correct Least
+    Common Ancestor for executing Exit and Entry Actions.
+
 * Storage
 
   * FAT FS: It is now possible to expose file system formatting functionality for FAT without also
