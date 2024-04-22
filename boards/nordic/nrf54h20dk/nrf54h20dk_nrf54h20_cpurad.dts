@@ -27,6 +27,10 @@
 		zephyr,shell-uart = &uart135;
 		zephyr,bt-hci-ipc = &ipc0;
 	};
+
+	aliases {
+		resetinfo = &cpurad_resetinfo;
+	};
 };
 
 &shared_ram3x_region {
