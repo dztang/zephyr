@@ -44,3 +44,12 @@ API Reference
 *************
 
 .. doxygengroup:: charger_interface
+
+Samples
+*******
+
+A sample application making use the charger API is available.
+
+This application demonstrates a simple charging task loop.
+
+:zephyr:code-sample:`Zephyr battery charger sample <charger>`
