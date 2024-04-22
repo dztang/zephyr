@@ -24,6 +24,7 @@
 enum {
 	BT_EVENT_CMD_TX,
 	BT_EVENT_CONN_TX_QUEUE,
+	BT_EVENT_CONN_FREE_TX,
 };
 
 /* bt_dev flags: the flags defined here represent BT controller state */
@@ -275,6 +276,10 @@ struct bt_dev_le {
 	 */
 	uint8_t                    rl_entries;
 #endif /* CONFIG_BT_SMP */
+	/* List of `struct bt_conn` that have either pending data to send, or
+	 * something to process (e.g. a disconnection event).
+	 */
+	sys_slist_t		conn_ready;
 };
 
 #if defined(CONFIG_BT_CLASSIC)
