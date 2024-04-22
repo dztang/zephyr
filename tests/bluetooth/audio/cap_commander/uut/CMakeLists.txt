@@ -11,11 +11,13 @@ add_library(uut STATIC
   ${ZEPHYR_BASE}/subsys/bluetooth/audio/cap_common.c
   ${ZEPHYR_BASE}/subsys/logging/log_minimal.c
   ${ZEPHYR_BASE}/subsys/net/buf_simple.c
+  bap_broadcast_assistant.c
   aics.c
   csip.c
   micp.c
   vcp.c
   vocs.c
+  bap_broadcast_assistant.c
 )
 
 add_subdirectory(${ZEPHYR_BASE}/tests/bluetooth/audio/mocks mocks)
