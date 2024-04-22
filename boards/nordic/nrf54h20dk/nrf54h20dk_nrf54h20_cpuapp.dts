@@ -195,3 +195,7 @@ ipc0: &cpuapp_cpurad_ipc {
 	pinctrl-names = "default", "sleep";
 	hw-flow-control;
 };
+
+&adc {
+	status = "okay";
+};
