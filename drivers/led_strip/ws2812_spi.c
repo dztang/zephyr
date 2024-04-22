@@ -44,6 +44,7 @@ struct ws2812_spi_cfg {
 	uint8_t zero_frame;
 	uint8_t num_colors;
 	const uint8_t *color_mapping;
+	uint16_t length;
 	uint16_t reset_delay;
 };
 
@@ -152,12 +153,15 @@ static int ws2812_strip_update_rgb(const struct device *dev,
 	return rc;
 }
 
-static int ws2812_strip_update_channels(const struct device *dev,
-					uint8_t *channels,
-					size_t num_channels)
+static int ws2812_strip_length(const struct device *dev)
 {
-	LOG_ERR("update_channels not implemented");
-	return -ENOTSUP;
+	const struct ws2812_spi_cfg *cfg = dev_cfg(dev);
+
+	if (!spi_is_ready_dt(&cfg->bus)) {
+		return -ENODEV;
+	}
+
+	return config->length;
 }
 
 static int ws2812_spi_init(const struct device *dev)
@@ -190,7 +194,7 @@ static int ws2812_spi_init(const struct device *dev)
 
 static const struct led_strip_driver_api ws2812_spi_api = {
 	.update_rgb = ws2812_strip_update_rgb,
-	.update_channels = ws2812_strip_update_channels,
+	.length = ws2812_strip_length,
 };
 
 #define WS2812_SPI_NUM_PIXELS(idx) \
@@ -231,6 +235,7 @@ static const struct led_strip_driver_api ws2812_spi_api = {
 		.zero_frame = WS2812_SPI_ZERO_FRAME(idx),		 \
 		.num_colors = WS2812_NUM_COLORS(idx),			 \
 		.color_mapping = ws2812_spi_##idx##_color_mapping,	 \
+		.length = DT_INST_PROP(idx, chain_length),               \
 		.reset_delay = WS2812_RESET_DELAY(idx),			 \
 	};								 \
 									 \
