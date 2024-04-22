@@ -119,7 +119,7 @@ static int cmd_usbd_magic(const struct shell *sh,
 		shell_error(sh, "dev: Failed to initialize device support");
 	}
 
-	err = usbd_enable(my_uds_ctx);
+	err = usbd_enable(my_uds_ctx, true);
 	if (err) {
 		shell_error(sh, "dev: Failed to enable device support");
 	}
@@ -170,7 +170,7 @@ static int cmd_usbd_enable(const struct shell *sh,
 {
 	int err;
 
-	err = usbd_enable(my_uds_ctx);
+	err = usbd_enable(my_uds_ctx, true);
 
 	if (err == -EALREADY) {
 		shell_error(sh, "dev: USB already enabled");

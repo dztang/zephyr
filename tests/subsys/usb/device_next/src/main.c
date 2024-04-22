@@ -129,7 +129,7 @@ static void *usb_test_enable(void)
 	err = usbd_init(&test_usbd);
 	zassert_equal(err, 0, "Failed to initialize device support");
 
-	err = usbd_enable(&test_usbd);
+	err = usbd_enable(&test_usbd, true);
 	zassert_equal(err, 0, "Failed to enable device support");
 
 	LOG_INF("Device support enabled");

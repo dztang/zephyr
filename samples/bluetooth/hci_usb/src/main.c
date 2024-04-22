@@ -21,7 +21,7 @@ static int enable_usb_device_next(void)
 		return -ENODEV;
 	}
 
-	return usbd_enable(sample_usbd);
+	return usbd_enable(sample_usbd, true);
 }
 #endif /* CONFIG_USB_DEVICE_STACK_NEXT */
 

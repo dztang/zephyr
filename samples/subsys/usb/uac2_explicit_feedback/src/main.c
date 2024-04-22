@@ -290,7 +290,7 @@ int main(void)
 		return -ENODEV;
 	}
 
-	ret = usbd_enable(sample_usbd);
+	ret = usbd_enable(sample_usbd, true);
 	if (ret) {
 		return ret;
 	}
