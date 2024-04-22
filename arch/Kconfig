@@ -872,6 +872,13 @@ config CODE_DATA_RELOCATION
 	  the target regions should be specified in CMakeLists.txt using
 	  zephyr_code_relocate().
 
+config SKIP_ROM_START_SNIPPET_LD
+	bool
+	help
+	  Configuration to skip including snippets-rom-start.ld to
+	  linker script. It can be used for platforms that require custom
+	  ROM START section or specific location for this section.
+
 menu "DSP Options"
 
 config DSP_SHARING

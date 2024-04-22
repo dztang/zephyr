@@ -1,0 +1,72 @@
+/*
+ * Copyright (c) 2024 Cypress Semiconductor Corporation.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <arm/infineon/cat1b/mpns/CYW20829B0LKML.dtsi>
+#include <arm/infineon/cat1b/cyw20829/system_clocks.dtsi>
+#include "cyw920829m2evk_02-common.dtsi"
+#include "cyw920829m2evk_02-pinctrl.dtsi"
+
+/ {
+	model = "The Infineon AIROC™ CYW20829 Bluetooth® LE evaluation kit (CYW92089M2EVK-02)";
+	compatible = "infineon,cyw920829m2evk_02", "infineon,CYW20829";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,console = &uart2;
+		zephyr,shell-uart = &uart2;
+	};
+};
+
+&nvic {
+	arm,num-irq-priority-bits = <3>;
+};
+
+uart2: &scb2 {
+	compatible = "infineon,cat1-uart";
+	status = "okay";
+	current-speed = <115200>;
+
+	pinctrl-0 = <&p3_3_scb2_uart_tx &p3_2_scb2_uart_rx>;
+	pinctrl-names = "default";
+};
+
+&fll0 {
+	status = "okay";
+};
+
+&path_mux0 {
+	status = "okay";
+};
+
+&path_mux1 {
+	status = "okay";
+};
+
+&path_mux2 {
+	status = "okay";
+};
+
+&path_mux3 {
+	status = "okay";
+};
+
+&clk_hf0 {
+	status = "okay";
+	clocks = <&fll0>;
+};
+
+&clk_hf1 {
+	status = "okay";
+};
+
+&clk_hf2 {
+	status = "okay";
+};
+
+&clk_hf3 {
+	status = "okay";
+};
