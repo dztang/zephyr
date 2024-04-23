@@ -50,9 +50,9 @@ static struct k_spinlock latency_lock;
 /** List of maximum latency requests. */
 static sys_slist_t latency_reqs;
 /** Maximum CPU latency in us */
-static int32_t max_latency_us = SYS_FOREVER_US;
+static uint32_t max_latency_us = SYS_FOREVER_US;
 /** Maximum CPU latency in cycles */
-static int32_t max_latency_cyc = -1;
+static uint32_t max_latency_cyc = -1;
 /** List of latency change subscribers. */
 static sys_slist_t latency_subs;
 
@@ -60,32 +60,34 @@ static sys_slist_t latency_subs;
 static struct k_spinlock events_lock;
 /** List of events. */
 static sys_slist_t events_list;
+/** List of next event subscribers. */
+static sys_slist_t next_event_subs;
 /** Next event, in absolute cycles (<0: none, [0, UINT32_MAX]: cycles) */
 static int64_t next_event_cyc = -1;
 
 /** @brief Update maximum allowed latency. */
 static void update_max_latency(void)
 {
-	int32_t new_max_latency_us = SYS_FOREVER_US;
+	uint32_t new_max_latency_us = SYS_FOREVER_US;
 	struct pm_policy_latency_request *req;
 
 	SYS_SLIST_FOR_EACH_CONTAINER(&latency_reqs, req, node) {
 		if ((new_max_latency_us == SYS_FOREVER_US) ||
-		    ((int32_t)req->value_us < new_max_latency_us)) {
-			new_max_latency_us = (int32_t)req->value_us;
+		    (req->value_us < new_max_latency_us)) {
+			new_max_latency_us = req->value_us;
 		}
 	}
 
 	if (max_latency_us != new_max_latency_us) {
 		struct pm_policy_latency_subscription *sreq;
-		int32_t new_max_latency_cyc = -1;
+		uint32_t new_max_latency_cyc = -1;
 
 		SYS_SLIST_FOR_EACH_CONTAINER(&latency_subs, sreq, node) {
 			sreq->cb(new_max_latency_us);
 		}
 
 		if (new_max_latency_us != SYS_FOREVER_US) {
-			new_max_latency_cyc = (int32_t)k_us_to_cyc_ceil32(new_max_latency_us);
+			new_max_latency_cyc = k_us_to_cyc_ceil32(new_max_latency_us);
 		}
 
 		max_latency_us = new_max_latency_us;
@@ -98,6 +100,7 @@ static void update_next_event(uint32_t cyc)
 {
 	int64_t new_next_event_cyc = -1;
 	struct pm_policy_event *evt;
+	struct pm_policy_event_subscription *sreq;
 
 	SYS_SLIST_FOR_EACH_CONTAINER(&events_list, evt, node) {
 		uint64_t cyc_evt = evt->value_cyc;
@@ -125,6 +128,10 @@ static void update_next_event(uint32_t cyc)
 	/* undo padding for events in the [0, cyc) range */
 	if (new_next_event_cyc > UINT32_MAX) {
 		new_next_event_cyc -= UINT32_MAX + 1U;
+	}
+
+	SYS_SLIST_FOR_EACH_CONTAINER(&next_event_subs, sreq, node) {
+		sreq->cb(new_next_event_cyc);
 	}
 
 	next_event_cyc = new_next_event_cyc;
@@ -326,6 +333,26 @@ void pm_policy_event_unregister(struct pm_policy_event *evt)
 
 	(void)sys_slist_find_and_remove(&events_list, &evt->node);
 	update_next_event(k_cycle_get_32());
+
+	k_spin_unlock(&events_lock, key);
+}
+
+void pm_policy_next_event_subscribe(struct pm_policy_event_subscription *req,
+					 pm_policy_next_event_cb_t cb)
+{
+	k_spinlock_key_t key = k_spin_lock(&events_lock);
+
+	req->cb = cb;
+	sys_slist_append(&next_event_subs, &req->node);
+
+	k_spin_unlock(&events_lock, key);
+}
+
+void pm_policy_next_event_unsubscribe(struct pm_policy_event_subscription *req)
+{
+	k_spinlock_key_t key = k_spin_lock(&events_lock);
+
+	(void)sys_slist_find_and_remove(&next_event_subs, &req->node);
 
 	k_spin_unlock(&events_lock, key);
 }

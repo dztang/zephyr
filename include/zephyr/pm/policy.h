@@ -59,6 +59,23 @@ struct pm_policy_latency_request {
 };
 
 /**
+ * @brief Callback to notify subscribers of the next event.
+ *
+ * @param next_event Next event in cycles.
+ */
+typedef void (*pm_policy_next_event_cb_t)(int64_t next_event);
+
+/**
+ * @brief Next event subscription.
+ *
+ * @note All fields in this structure are meant for private usage.
+ */
+struct pm_policy_event_subscription {
+	sys_snode_t node;
+	pm_policy_next_event_cb_t cb;
+};
+
+/**
  * @brief Event.
  *
  * @note All fields in this structure are meant for private usage.
@@ -219,6 +236,22 @@ void pm_policy_event_update(struct pm_policy_event *evt, uint32_t time_us);
  */
 void pm_policy_event_unregister(struct pm_policy_event *evt);
 
+/**
+ * @brief Subscribe to maximum latency changes.
+ *
+ * @param req Subscription request.
+ * @param cb Callback function (NULL to disable).
+ */
+void pm_policy_next_event_subscribe(struct pm_policy_event_subscription *req,
+					 pm_policy_next_event_cb_t cb);
+
+/**
+ * @brief Unsubscribe to maximum latency changes.
+ *
+ * @param req Subscription request.
+ */
+void pm_policy_next_event_unsubscribe(struct pm_policy_event_subscription *req);
+
 #else
 static inline void pm_policy_state_lock_get(enum pm_state state, uint8_t substate_id)
 {
@@ -277,6 +310,18 @@ static inline void pm_policy_event_update(struct pm_policy_event *evt,
 static inline void pm_policy_event_unregister(struct pm_policy_event *evt)
 {
 	ARG_UNUSED(evt);
+}
+
+void pm_policy_next_event_subscribe(struct pm_policy_event_subscription *req,
+					 pm_policy_next_event_cb_t cb)
+{
+	ARG_UNUSED(req);
+	ARG_UNUSED(cb);
+}
+
+void pm_policy_next_event_unsubscribe(struct pm_policy_event_subscription *req)
+{
+	ARG_UNUSED(req);
 }
 #endif /* CONFIG_PM */
 
