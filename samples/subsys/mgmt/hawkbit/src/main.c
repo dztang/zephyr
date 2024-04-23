@@ -87,7 +87,7 @@ int main(void)
 
 #if defined(CONFIG_HAWKBIT_POLLING)
 	LOG_INF("Starting hawkBit polling mode");
-	hawkbit_autohandler();
+	hawkbit_autohandler(true);
 #endif
 
 #if defined(CONFIG_HAWKBIT_MANUAL)
@@ -105,14 +105,6 @@ int main(void)
 
 	case HAWKBIT_NO_UPDATE:
 		LOG_INF("No update found");
-		break;
-
-	case HAWKBIT_CANCEL_UPDATE:
-		LOG_INF("hawkBit update cancelled from server");
-		break;
-
-	case HAWKBIT_OK:
-		LOG_INF("Image is already updated");
 		break;
 
 	case HAWKBIT_UPDATE_INSTALLED:

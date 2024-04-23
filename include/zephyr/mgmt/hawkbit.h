@@ -13,7 +13,7 @@
 #ifndef ZEPHYR_INCLUDE_MGMT_HAWKBIT_H_
 #define ZEPHYR_INCLUDE_MGMT_HAWKBIT_H_
 
-#define HAWKBIT_JSON_URL "/default/controller/v1"
+#include <zephyr/net/tls_credentials.h>
 
 /**
  * @brief Response message from hawkBit.
@@ -24,15 +24,15 @@
  *
  */
 enum hawkbit_response {
+	HAWKBIT_NO_RESPONSE,
 	HAWKBIT_NETWORKING_ERROR,
 	HAWKBIT_UNCONFIRMED_IMAGE,
 	HAWKBIT_PERMISSION_ERROR,
 	HAWKBIT_METADATA_ERROR,
 	HAWKBIT_DOWNLOAD_ERROR,
-	HAWKBIT_OK,
+	HAWKBIT_ALLOC_ERROR,
 	HAWKBIT_UPDATE_INSTALLED,
 	HAWKBIT_NO_UPDATE,
-	HAWKBIT_CANCEL_UPDATE,
 	HAWKBIT_NOT_INITIALIZED,
 	HAWKBIT_PROBE_IN_PROGRESS,
 };
@@ -47,6 +47,7 @@ struct hawkbit_runtime_config {
 	char *server_addr;
 	uint16_t server_port;
 	char *auth_token;
+	sec_tag_t tls_tag;
 };
 
 /**
@@ -88,18 +89,39 @@ int hawkbit_init(void);
  *
  * @details The hawkbit_autohandler handles the whole process
  * in pre-determined time intervals.
+ *
+ * @param auto_reschedule If true, the handler will reschedule itself
  */
-void hawkbit_autohandler(void);
+void hawkbit_autohandler(bool auto_reschedule);
+
+/**
+ * @brief Wait for the autohandler to finish.
+ *
+ * @param events Set of desired events on which to wait
+ * @param timeout Waiting period for the desired set of events or one of the
+ *                special values K_NO_WAIT and K_FOREVER.
+ *
+ * @return HAWKBIT_NO_RESPONSE if matching events were not received within the specified time
+ * @return HAWKBIT_NETWORKING_ERROR fail to connect to the hawkBit server.
+ * @return HAWKBIT_UNCONFIRMED_IMAGE image is unconfirmed.
+ * @return HAWKBIT_PERMISSION_ERROR fail to get the permission to access the hawkBit server.
+ * @return HAWKBIT_METADATA_ERROR fail to parse or to encode the metadata.
+ * @return HAWKBIT_DOWNLOAD_ERROR fail while downloading the update package.
+ * @return HAWKBIT_UPDATE_INSTALLED has an update available.
+ * @return HAWKBIT_NO_UPDATE no update available.
+ */
+enum hawkbit_response hawkbit_autohandler_wait(uint32_t events, k_timeout_t timeout);
 
 /**
  * @brief The hawkBit probe verify if there is some update to be performed.
  *
+ * @return HAWKBIT_NETWORKING_ERROR fail to connect to the hawkBit server.
+ * @return HAWKBIT_UNCONFIRMED_IMAGE image is unconfirmed.
+ * @return HAWKBIT_PERMISSION_ERROR fail to get the permission to access the hawkBit server.
+ * @return HAWKBIT_METADATA_ERROR fail to parse or to encode the metadata.
+ * @return HAWKBIT_DOWNLOAD_ERROR fail while downloading the update package.
  * @return HAWKBIT_UPDATE_INSTALLED has an update available.
  * @return HAWKBIT_NO_UPDATE no update available.
- * @return HAWKBIT_NETWORKING_ERROR fail to connect to the hawkBit server.
- * @return HAWKBIT_METADATA_ERROR fail to parse or to encode the metadata.
- * @return HAWKBIT_OK if success.
- * @return HAWKBIT_DOWNLOAD_ERROR fail while downloading the update package.
  */
 enum hawkbit_response hawkbit_probe(void);
 
@@ -154,7 +176,7 @@ struct hawkbit_runtime_config hawkbit_get_config(void);
 static inline int hawkbit_set_server_addr(char *addr_str)
 {
 	struct hawkbit_runtime_config set_config = {
-		.server_addr = addr_str, .server_port = 0, .auth_token = NULL};
+		.server_addr = addr_str, .server_port = 0, .auth_token = NULL, .tls_tag = 0};
 
 	return hawkbit_set_config(&set_config);
 }
@@ -169,7 +191,7 @@ static inline int hawkbit_set_server_addr(char *addr_str)
 static inline int hawkbit_set_server_port(uint16_t port)
 {
 	struct hawkbit_runtime_config set_config = {
-		.server_addr = NULL, .server_port = port, .auth_token = NULL};
+		.server_addr = NULL, .server_port = port, .auth_token = NULL, .tls_tag = 0};
 
 	return hawkbit_set_config(&set_config);
 }
@@ -184,7 +206,22 @@ static inline int hawkbit_set_server_port(uint16_t port)
 static inline int hawkbit_set_ddi_security_token(char *token)
 {
 	struct hawkbit_runtime_config set_config = {
-		.server_addr = NULL, .server_port = 0, .auth_token = token};
+		.server_addr = NULL, .server_port = 0, .auth_token = token, .tls_tag = 0};
+
+	return hawkbit_set_config(&set_config);
+}
+
+/**
+ * @brief Set the hawkBit TLS tag
+ *
+ * @param tag TLS tag to set.
+ * @retval 0 on success.
+ * @retval -EAGAIN if probe is currently running.
+ */
+static inline int hawkbit_set_tls_tag(sec_tag_t tag)
+{
+	struct hawkbit_runtime_config set_config = {
+		.server_addr = NULL, .server_port = 0, .auth_token = NULL, .tls_tag = tag};
 
 	return hawkbit_set_config(&set_config);
 }
@@ -217,6 +254,16 @@ static inline uint16_t hawkbit_get_server_port(void)
 static inline char *hawkbit_get_ddi_security_token(void)
 {
 	return hawkbit_get_config().auth_token;
+}
+
+/**
+ * @brief Get the hawkBit TLS tag.
+ *
+ * @return Security token.
+ */
+static inline sec_tag_t hawkbit_get_tls_tag(void)
+{
+	return hawkbit_get_config().tls_tag;
 }
 
 /**

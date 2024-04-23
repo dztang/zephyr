@@ -15,6 +15,9 @@ menuconfig HAWKBIT
 	depends on DNS_RESOLVER
 	depends on JSON_LIBRARY
 	depends on BOOTLOADER_MCUBOOT
+	depends on SMF
+	depends on SMF_ANCESTOR_SUPPORT
+	select EVENTS
 	select MPU_ALLOW_FLASH_WRITE
 	select IMG_ENABLE_IMAGE_CHECK
 	select IMG_ERASE_PROGRESSIVELY
@@ -37,6 +40,12 @@ config HAWKBIT_SHELL
 	depends on SHELL
 	help
 	  Activate shell module that provides hawkBit commands.
+
+config HAWKBIT_TENANT
+	string "Tenant name for the hawkbit server"
+	default "default"
+	help
+	  Configure the tenant name for the hawkbit server.
 
 config HAWKBIT_SERVER
 	string "User address for the hawkbit server"
@@ -110,6 +119,34 @@ config HAWKBIT_DEVICE_ID_MAX_LENGTH
 	default 32
 	help
 	  Maximum length of the device id.
+
+if NET_SOCKETS_SOCKOPT_TLS
+
+choice HAWKBIT_CERT_TAG
+	prompt "hawkBit certificate tag"
+	default HAWKBIT_USE_STATIC_CERT_TAG
+
+config HAWKBIT_USE_STATIC_CERT_TAG
+	bool "Use static certificate tag"
+	help
+	  Use static certificate tag for TLS connection to the hawkBit server.
+
+config HAWKBIT_USE_DYNAMIC_CERT_TAG
+	bool "Use dynamic certificate tag"
+	depends on HAWKBIT_SET_SETTINGS_RUNTIME
+	help
+	  Use dynamic certificate tag for TLS connection to the hawkBit server.
+
+endchoice
+
+config HAWKBIT_STATIC_CERT_TAG
+	int "Static certificate tag"
+	depends on HAWKBIT_USE_STATIC_CERT_TAG
+	default 1
+	help
+	  Static certificate tag for TLS connection to the hawkBit server.
+
+endif
 
 module = HAWKBIT
 module-str = Log Level for hawkbit
