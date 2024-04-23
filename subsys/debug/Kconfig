@@ -73,6 +73,13 @@ config THREAD_ANALYZER_AUTO
 
 if THREAD_ANALYZER_AUTO
 
+config THREAD_ANALYZER_AUTO_SEPARATE_CORES
+	bool "Run thread analyzer separately on each core"
+	depends on SCHED_CPU_MASK
+	help
+	  Run the thread analyzer auto thread on each core and report
+	  cores separately.
+
 config THREAD_ANALYZER_AUTO_INTERVAL
 	int "Thread analysis interval"
 	default 60
