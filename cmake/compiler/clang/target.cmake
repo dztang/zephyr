@@ -89,3 +89,12 @@ macro(toolchain_cc_nostdinc)
     zephyr_compile_options( -nostdinc)
   endif()
 endmacro()
+
+list(APPEND LLEXT_EDK_REMOVE_FLAGS
+    --sysroot=.*
+    -fmacro-prefix-map=.*
+    )
+
+list(APPEND LLEXT_EDK_APPEND_FLAGS
+    -nodefaultlibs
+    )
