@@ -34,4 +34,18 @@ config LV_Z_POINTER_INPUT_MSGQ_COUNT
 
 endif # INPUT
 
+if BT
+
+choice BT_HCI_BUS_TYPE
+	default BT_DA1469X
+endchoice
+
+config BT_WAIT_NOP
+	default y
+
+config TEST_RANDOM_GENERATOR
+	default y
+
+endif # BT
+
 endif # BOARD_DA1469X_DK_PRO
