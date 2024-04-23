@@ -1,8 +1,13 @@
 common:
   depends_on: netif
+  min_ram: 32
+  tags:
+    - net
+    - vlan
 tests:
-  net.vlan:
-    min_ram: 32
-    tags:
-      - net
-      - vlan
+  net.vlan.no.headroom:
+    extra_configs:
+      - CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION=n
+  net.vlan.with.headroom:
+    extra_configs:
+      - CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION=y

@@ -161,7 +161,7 @@ static int eth_tx(const struct device *dev, struct net_pkt *pkt)
 
 static enum ethernet_hw_caps eth_capabilities(const struct device *dev)
 {
-	return ETHERNET_HW_VLAN;
+	return ETHERNET_HW_VLAN | ETHERNET_EMBEDDED_LL_HEADER;
 }
 
 static struct ethernet_api api_funcs = {

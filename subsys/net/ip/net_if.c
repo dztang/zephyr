@@ -5327,6 +5327,41 @@ static void set_default_name(struct net_if *iface)
 }
 #endif /* CONFIG_NET_INTERFACE_NAME */
 
+size_t net_if_reserve_ll_header_size(struct net_if *iface)
+{
+#if defined(CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION)
+	if (iface != NULL) {
+		size_t len;
+
+		len = iface->if_dev->reserve_ll_header;
+
+		/* The length must be smaller than the net_buf size
+		 * when using fixed buffers. Otherwise one could just allocate
+		 * the link layer header net_buf directly.
+		 */
+		NET_ASSERT(len <= CONFIG_NET_BUF_DATA_SIZE);
+
+		return len;
+	}
+#else
+	ARG_UNUSED(iface);
+#endif
+	return 0U;
+}
+
+void net_if_set_reserve_ll_header_size(struct net_if *iface,
+				       size_t reserve_ll_header)
+{
+#if defined(CONFIG_NET_PKT_ALLOW_HEADROOM_ALLOCATION)
+	NET_ASSERT(iface != NULL);
+
+	iface->if_dev->reserve_ll_header = reserve_ll_header;
+#else
+	ARG_UNUSED(iface);
+	ARG_UNUSED(reserve_ll_header);
+#endif
+}
+
 void net_if_init(void)
 {
 	int if_count = 0;
