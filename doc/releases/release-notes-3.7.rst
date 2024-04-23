@@ -145,6 +145,8 @@ Drivers and Sensors
 
 * Display
 
+  * Migrated ST7735R based displays to MIPI DBI driver class
+
 * DMA
 
 * Entropy
