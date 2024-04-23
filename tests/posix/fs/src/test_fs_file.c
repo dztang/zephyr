@@ -12,6 +12,21 @@
 const char test_str[] = "hello world!";
 int file = -1;
 
+static int test_file_fopen(void)
+{
+	FILE *fp;
+
+	fp = fopen(TEST_FILE, "w+");
+	if (fp == NULL) {
+		TC_PRINT("Failed opening file\n");
+		return TC_FAIL;
+	}
+
+	fclose(fp);
+	return TC_PASS;
+}
+
+
 static int test_file_open(void)
 {
 	int res;
@@ -301,4 +316,15 @@ ZTEST(posix_fs_file_test, test_fs_fd_leak)
 			zassert_true(test_file_close() == TC_PASS);
 		}
 	}
+}
+
+/**
+ * @brief Test for POSIX fopen API
+ *
+ * @details Test opens new file through POSIX fopen API.
+ */
+ZTEST(posix_fs_file_test, test_fs_fopen)
+{
+	/* FIXME: restructure tests as per #46897 */
+	zassert_true(test_file_fopen() == TC_PASS);
 }
