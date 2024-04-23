@@ -119,6 +119,21 @@ To allow the board to boot using the SD card, set the boot pins to the SD Card b
 After changing the boot mode, the board should go through the boot sequence on powering up.
 The binary will run and print Hello world to the MCU_UART0 port.
 
+Debugging
+*********
+
+The board is equipped with an XDS110 JTAG debugger. To debug a binary, utilize the `debug` build target:
+
+.. zephyr-app-commands::
+   :zephyr-app: <my_app>
+   :board: sk_am62/am6234/m4
+   :maybe-skip-config:
+   :goals: debug
+
+.. hint::
+   To utilize this feature, you'll need OpenOCD version 0.12 or higher. Due to the possibility of
+   older versions being available in package feeds, it's advisable to `build OpenOCD from source`_.
+
 References
 **********
 
