@@ -25,6 +25,7 @@
 		uart-0 = &uart0;
 		i2c-0 = &i2c0;
 		watchdog0 = &wdt0;
+		sdhc = &sdhc;
 	};
 
 	chosen {
@@ -34,6 +35,7 @@
 		zephyr,flash = &flash0;
 		zephyr,code-partition = &slot0_partition;
 		zephyr,display = &ili9341;
+		zephyr,sdhc = &sdhc;
 	};
 
 	leds {
@@ -185,6 +187,35 @@
 
 &trng0 {
 	status = "okay";
+};
+
+&sdhc {
+	status = "okay";
+	max-bus-freq = <52000000>;
+
+	slots {
+		slot1: sdhc-slot@1 {
+			reg = <0x1>;
+			status = "okay";
+
+			pinctrl-0 = <&sdhc_slot1_default>;
+			pinctrl-names = "default";
+			power-delay-ms = <100>;
+			bus-width = <4>;
+
+			clk-pin = <14>;
+			cmd-pin = <15>;
+			d0-pin = <2>;
+			d1-pin = <4>;
+			d2-pin = <12>;
+			d3-pin = <13>;
+		};
+	};
+
+	mmc {
+		compatible = "zephyr,sdmmc-disk";
+		status = "okay";
+	};
 };
 
 &flash0 {
