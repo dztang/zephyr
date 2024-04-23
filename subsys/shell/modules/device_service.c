@@ -79,7 +79,17 @@ static int cmd_device_list(const struct shell *sh,
 #endif /* CONFIG_PM_DEVICE */
 		}
 
+#ifdef CONFIG_PM_DEVICE_RUNTIME
+		if (dev->pm != NULL) {
+			uint32_t usage = pm_device_usage_get(dev);
+
+			shell_fprintf(sh, SHELL_NORMAL, " (%s, usage=%d)\n", state, usage);
+		} else {
+			shell_fprintf(sh, SHELL_NORMAL, " (%s)\n", state);
+		}
+#else
 		shell_fprintf(sh, SHELL_NORMAL, " (%s)\n", state);
+#endif
 #ifdef CONFIG_DEVICE_DEPS
 		if (!k_is_user_context()) {
 			struct cmd_device_list_visitor_context ctx = {
