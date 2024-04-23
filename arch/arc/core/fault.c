@@ -32,6 +32,10 @@ static const struct z_exc_handle exceptions[] = {
 };
 #endif
 
+#if !defined(CONFIG_MULTITHREADING)
+extern char z_main_stack[];
+#endif /* CONFIG_MULTITHREADING */
+
 #if defined(CONFIG_MPU_STACK_GUARD)
 /**
  * @brief Assess occurrence of current thread's stack corruption
@@ -90,6 +94,9 @@ static bool z_check_thread_stack_fail(const uint32_t fault_addr, uint32_t sp)
 		guard_end = thread->stack_info.start;
 		guard_start = guard_end - Z_ARC_STACK_GUARD_SIZE;
 	}
+#else /* CONFIG_MULTITHREADING */
+	guard_end = (uint32_t)z_main_stack;
+	guard_start = guard_end + Z_ARC_STACK_GUARD_SIZE;
 #endif /* CONFIG_MULTITHREADING */
 
 	 /* treat any MPU exceptions within the guard region as a stack
