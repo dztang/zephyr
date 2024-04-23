@@ -285,9 +285,11 @@ def scan_testsuite_path(testsuite_path):
     has_run_registered_test_suites = False
     has_test_main = False
     ztest_suite_names = []
+    scanned_file = []
 
     src_dir_path = _find_src_dir_path(testsuite_path)
     for filename in find_c_files_in(src_dir_path):
+        scanned_file += [filename]
         if os.stat(filename).st_size == 0:
             continue
         try:
@@ -311,6 +313,8 @@ def scan_testsuite_path(testsuite_path):
             logger.error("%s: error parsing source file: %s" % (filename, e))
 
     for filename in find_c_files_in(testsuite_path):
+        if filename in scanned_file:
+            continue
         try:
             result: ScanPathResult = scan_file(filename)
             if result.warnings:
