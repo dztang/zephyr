@@ -98,6 +98,19 @@ void z_fatal_error(unsigned int reason, const z_arch_esf_t *esf)
 	LOG_ERR(">>> ZEPHYR FATAL ERROR %d: %s on CPU %d", reason,
 		reason_to_str(reason), _current_cpu->id);
 
+	/* LOG the IRQn that was unhandled */
+#if defined(CONFIG_ARMV7_M_ARMV8_M_MAINLINE)
+	if (reason == K_ERR_SPURIOUS_IRQ) {
+		uint32_t ipsr;
+
+		__asm__ volatile("mrs %0, IPSR\n\t" : "=r"(ipsr));
+
+		uint32_t irqn = ipsr - 16;
+
+		LOG_ERR("Unhandled IRQn: %d", irqn);
+	}
+#endif
+
 	/* FIXME: This doesn't seem to work as expected on all arches.
 	 * Need a reliable way to determine whether the fault happened when
 	 * an IRQ or exception was being handled, or thread context.
