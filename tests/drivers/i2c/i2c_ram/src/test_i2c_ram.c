@@ -13,24 +13,29 @@
  */
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/pm/device_runtime.h>
 #include <zephyr/kernel.h>
 #include <zephyr/ztest.h>
 #include <zephyr/tc_util.h>
 
 #define RAM_ADDR (0b10100010 >> 1)
 
+#define CHARN(i, ...) ((i % 64) + 48)
+
 #if DT_NODE_HAS_STATUS(DT_ALIAS(i2c_ram), okay)
 #define I2C_DEV_NODE	DT_ALIAS(i2c_ram)
 #define TX_DATA_OFFSET 2
 static uint8_t tx_data[9] = {0x00, 0x00, 'Z', 'e', 'p', 'h', 'y', 'r', '\n'};
+static uint8_t tx_big_data[514] = {0x00, 0x00, LISTIFY(512, CHARN, (,))};
 static uint8_t rx_cmd[2] = {0x00, 0x00};
 #else
 #error "Please set the correct I2C device and alias for i2c_ram to be status okay"
 #endif
 
-uint32_t i2c_cfg = I2C_SPEED_SET(I2C_SPEED_STANDARD) | I2C_MODE_CONTROLLER;
-struct i2c_msg msgs[2];
-uint8_t rx_data[7];
+static uint32_t i2c_cfg = I2C_SPEED_SET(I2C_SPEED_STANDARD) | I2C_MODE_CONTROLLER;
+static struct i2c_msg msgs[2];
+static uint8_t rx_data[7];
+static uint8_t rx_big_data[512];
 
 const struct device *i2c_dev = DEVICE_DT_GET(I2C_DEV_NODE);
 
@@ -73,6 +78,17 @@ static void i2c_ram_before(void *f)
 	rx_cmd[1] = (addr) & 0xFF;
 	addr += ARRAY_SIZE(tx_data) - TX_DATA_OFFSET;
 	memset(rx_data, 0, ARRAY_SIZE(rx_data));
+
+#ifdef CONFIG_PM_DEVICE_RUNTIME
+	pm_device_runtime_get(i2c_dev);
+#endif
+}
+
+static void i2c_ram_after(void *f)
+{
+#ifdef CONFIG_PM_DEVICE_RUNTIME
+	pm_device_runtime_put(i2c_dev);
+#endif
 }
 
 ZTEST(i2c_ram, test_ram_transfer)
@@ -99,6 +115,33 @@ ZTEST(i2c_ram, test_ram_transfer)
 
 	zassert_equal(memcmp(&tx_data[TX_DATA_OFFSET], &rx_data[0], ARRAY_SIZE(rx_data)), 0,
 		      "Written and Read data should match");
+}
+
+ZTEST(i2c_ram, test_ram_big_transfer)
+{
+	TC_PRINT("ram using i2c_transfer from thread %p addr %x\n", k_current_get(), addr);
+
+	msgs[0].buf = tx_big_data;
+	msgs[0].len = ARRAY_SIZE(tx_big_data);
+	msgs[0].flags = I2C_MSG_WRITE | I2C_MSG_STOP;
+
+	zassert_ok(i2c_transfer(i2c_dev, msgs, 1, RAM_ADDR),
+		   "I2C write to fram failed");
+
+	/* Write the address and read the data back */
+	msgs[0].buf = rx_cmd;
+	msgs[0].len = ARRAY_SIZE(rx_cmd);
+	msgs[0].flags = I2C_MSG_WRITE;
+	msgs[1].buf = rx_big_data;
+	msgs[1].len = ARRAY_SIZE(rx_big_data);
+	msgs[1].flags = I2C_MSG_RESTART | I2C_MSG_READ | I2C_MSG_STOP;
+
+	zassert_ok(i2c_transfer(i2c_dev, msgs, 2, RAM_ADDR),
+		   "I2C read from fram failed");
+
+	zassert_equal(memcmp(&tx_big_data[TX_DATA_OFFSET], &rx_big_data[0],
+			     ARRAY_SIZE(rx_big_data)), 0,
+		"Written and Read data should match");
 }
 
 ZTEST(i2c_ram, test_ram_write_read)
@@ -294,4 +337,4 @@ ZTEST(i2c_ram, test_ram_rtio_isr)
 
 #endif /* CONFIG_I2C_RTIO */
 
-ZTEST_SUITE(i2c_ram, NULL, i2c_ram_setup, i2c_ram_before, NULL, NULL);
+ZTEST_SUITE(i2c_ram, NULL, i2c_ram_setup, i2c_ram_before, i2c_ram_after, NULL);
