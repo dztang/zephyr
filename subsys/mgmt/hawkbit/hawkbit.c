@@ -33,11 +33,6 @@
 #include "hawkbit_firmware.h"
 #include "hawkbit_priv.h"
 
-#if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
-#define CA_CERTIFICATE_TAG 1
-#include <zephyr/net/tls_credentials.h>
-#endif
-
 LOG_MODULE_REGISTER(hawkbit, CONFIG_HAWKBIT_LOG_LEVEL);
 
 #define RECV_BUFFER_SIZE 640
@@ -61,17 +56,13 @@ static bool hawkbit_initialized;
 
 #ifndef CONFIG_HAWKBIT_DDI_NO_SECURITY
 
-#ifdef CONFIG_HAWKBIT_DDI_GATEWAY_SECURITY
-#define AUTH_HEADER_START "Authorization: GatewayToken "
-#else
-#define AUTH_HEADER_START "Authorization: TargetToken "
-#endif /* CONFIG_HAWKBIT_DDI_GATEWAY_SECURITY */
+#define AUTH_HEADER_START                                                                          \
+	"Authorization: " COND_CODE_1(CONFIG_HAWKBIT_DDI_GATEWAY_SECURITY, ("Gateway"),            \
+				      ("Target")) "Token "
 
-#ifdef CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME
-#define AUTH_HEADER_FULL AUTH_HEADER_START "%s" HTTP_CRLF
-#else
-#define AUTH_HEADER_FULL AUTH_HEADER_START CONFIG_HAWKBIT_DDI_SECURITY_TOKEN HTTP_CRLF
-#endif /* CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME */
+#define AUTH_HEADER_FULL                                                                           \
+	AUTH_HEADER_START COND_CODE_1(CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME, ("%s"),                 \
+				      (CONFIG_HAWKBIT_DDI_SECURITY_TOKEN)) HTTP_CRLF
 
 #endif /* CONFIG_HAWKBIT_DDI_NO_SECURITY */
 
@@ -80,9 +71,9 @@ static struct hawkbit_config {
 #ifdef CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME
 	char server_addr[DNS_MAX_NAME_SIZE + 1];
 	char server_port[sizeof(STRINGIFY(__UINT16_MAX__))];
-#ifndef CONFIG_HAWKBIT_DDI_NO_SECURITY
-	char ddi_security_token[DDI_SECURITY_TOKEN_SIZE + 1];
-#endif
+	IF_DISABLED(CONFIG_HAWKBIT_DDI_NO_SECURITY,
+		    (char ddi_security_token[DDI_SECURITY_TOKEN_SIZE + 1];))
+	IF_ENABLED(CONFIG_HAWKBIT_USE_DYNAMIC_CERT_TAG, (sec_tag_t tls_tag;))
 #endif /* CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME */
 } hb_cfg;
 
@@ -96,13 +87,15 @@ static struct hawkbit_config {
 #define HAWKBIT_PORT_INT CONFIG_HAWKBIT_PORT
 #endif /* CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME */
 
-#ifdef CONFIG_HAWKBIT_DDI_NO_SECURITY
-#define HAWKBIT_DDI_SECURITY_TOKEN NULL
-#elif defined(CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME)
-#define HAWKBIT_DDI_SECURITY_TOKEN hb_cfg.ddi_security_token
-#else
-#define HAWKBIT_DDI_SECURITY_TOKEN CONFIG_HAWKBIT_DDI_SECURITY_TOKEN
-#endif /* CONFIG_HAWKBIT_DDI_NO_SECURITY */
+#define HAWKBIT_DDI_SECURITY_TOKEN                                                                 \
+	COND_CODE_1(CONFIG_HAWKBIT_DDI_NO_SECURITY, (NULL),                                        \
+		    (COND_CODE_1(CONFIG_HAWKBIT_SET_SETTINGS_RUNTIME, (hb_cfg.ddi_security_token), \
+				 (CONFIG_HAWKBIT_DDI_SECURITY_TOKEN))))
+
+#define HAWKBIT_CERT_TAG                                                                           \
+	COND_CODE_1(CONFIG_HAWKBIT_USE_DYNAMIC_CERT_TAG, (hb_cfg.tls_tag),                         \
+		    (COND_CODE_1(CONFIG_HAWKBIT_USE_STATIC_CERT_TAG,                               \
+				 (CONFIG_HAWKBIT_STATIC_CERT_TAG), (0))))
 
 struct hawkbit_download {
 	int download_status;
@@ -396,7 +389,7 @@ static bool start_http_client(int *hb_sock)
 
 #if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
 	sec_tag_t sec_tag_opt[] = {
-		CA_CERTIFICATE_TAG,
+		HAWKBIT_CERT_TAG,
 	};
 
 	if (zsock_setsockopt(*hb_sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_opt,
@@ -724,6 +717,12 @@ int hawkbit_set_config(struct hawkbit_runtime_config *config)
 				hb_cfg.ddi_security_token);
 		}
 #endif /* CONFIG_HAWKBIT_DDI_NO_SECURITY */
+#ifdef CONFIG_HAWKBIT_USE_DYNAMIC_CERT_TAG
+		if (config->tls_tag != 0) {
+			hb_cfg.tls_tag = config->tls_tag;
+			LOG_DBG("configured %s: %d", "hawkbit/tls_tag", hb_cfg.tls_tag);
+		}
+#endif /* CONFIG_HAWKBIT_USE_DYNAMIC_CERT_TAG */
 		settings_save();
 		k_sem_give(&probe_sem);
 	} else {
@@ -741,6 +740,7 @@ struct hawkbit_runtime_config hawkbit_get_config(void)
 		.server_addr = HAWKBIT_SERVER,
 		.server_port = HAWKBIT_PORT_INT,
 		.auth_token = HAWKBIT_DDI_SECURITY_TOKEN,
+		.tls_tag = HAWKBIT_CERT_TAG,
 	};
 
 	return config;
