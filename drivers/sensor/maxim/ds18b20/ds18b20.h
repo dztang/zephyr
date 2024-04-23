@@ -31,6 +31,8 @@
 /* convert resolution in bits to array index (for resolution specific elements) */
 #define DS18B20_RESOLUTION_INDEX(res)	(res - 9)
 
+enum chip_type {type_ds18b20, type_ds18s20};
+
 struct ds18b20_scratchpad {
 	int16_t temp;
 	uint8_t alarm_temp_high;
@@ -44,6 +46,7 @@ struct ds18b20_config {
 	const struct device *bus;
 	uint8_t family;
 	uint8_t resolution;
+	enum chip_type chip;
 };
 
 struct ds18b20_data {
