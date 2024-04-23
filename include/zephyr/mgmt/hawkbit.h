@@ -24,6 +24,7 @@
  *
  */
 enum hawkbit_response {
+	HAWKBIT_NO_RESPONSE,
 	HAWKBIT_NETWORKING_ERROR,
 	HAWKBIT_UNCONFIRMED_IMAGE,
 	HAWKBIT_PERMISSION_ERROR,
@@ -88,8 +89,30 @@ int hawkbit_init(void);
  *
  * @details The hawkbit_autohandler handles the whole process
  * in pre-determined time intervals.
+ *
+ * @param auto_reschedule If true, the handler will reschedule itself
  */
-void hawkbit_autohandler(void);
+void hawkbit_autohandler(bool auto_reschedule);
+
+/**
+ * @brief Wait for the autohandler to finish.
+ *
+ * @param events Set of desired events on which to wait
+ * @param timeout Waiting period for the desired set of events or one of the
+ *                special values K_NO_WAIT and K_FOREVER.
+ *
+ * @return HAWKBIT_NO_RESPONSE if matching events were not received within the specified time
+ * @return HAWKBIT_NETWORKING_ERROR fail to connect to the hawkBit server.
+ * @return HAWKBIT_UNCONFIRMED_IMAGE image is unconfirmed.
+ * @return HAWKBIT_PERMISSION_ERROR fail to get the permission to access the hawkBit server.
+ * @return HAWKBIT_METADATA_ERROR fail to parse or to encode the metadata.
+ * @return HAWKBIT_DOWNLOAD_ERROR fail while downloading the update package.
+ * @return HAWKBIT_OK if success.
+ * @return HAWKBIT_UPDATE_INSTALLED has an update available.
+ * @return HAWKBIT_NO_UPDATE no update available.
+ * @return HAWKBIT_CANCEL_UPDATE update was cancelled.
+ */
+enum hawkbit_response hawkbit_autohandler_wait(uint32_t events, k_timeout_t timeout);
 
 /**
  * @brief The hawkBit probe verify if there is some update to be performed.
