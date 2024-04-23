@@ -91,6 +91,12 @@ Boards & SoC Support
 Build system and Infrastructure
 *******************************
 
+* Compiler
+
+  * Deprecated the global CSTD cmake property in favor of the :kconfig:option:`CONFIG_STD_C`
+    choice to select the C Standard version. Additionally subsystems can select a minimum
+    required C Standard version, with for example :kconfig:option:`CONFIG_MINIMUM_REQUIRED_STD_C11`.
+
 Drivers and Sensors
 *******************
 
