@@ -444,3 +444,31 @@ config SEGGER_DEBUGMON
 	  This option will enable Segger's implementation of
 	  the debug monitor interrupt, overriding the
 	  default z_arm_debug_monitor symbol.
+
+config CPU_STATS
+	bool "CPU load measurement"
+	select ARM_ON_EXIT_CPU_IDLE_HOOK
+	select ARM_ON_ENTER_CPU_IDLE_HOOK
+	depends on ARM
+	depends on !SMP
+
+config CPU_STATS_USE_COUNTER
+	bool "Use counter"
+	select COUNTER
+	help
+	  Use counter for tracking CPU idle time.
+
+config CPU_STATS_HOOKS
+	bool "Implement idle hooks"
+	default y
+	help
+	  When enabled then module implements idle hooks. This option shall enabled
+	  if application does not implement own hooks. If disabled then module specific
+	  hooks must be called by the application idle hooks.
+
+config CPU_STATS_LOG_PERIODICALLY
+	int "Report period (in milliseconds)"
+	depends on LOG
+	default 0
+	help
+	  Specifies how often CPU load shall be logged. 0 means that there is no logging.
