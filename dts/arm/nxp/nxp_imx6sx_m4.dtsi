@@ -29,9 +29,10 @@
 		};
 	};
 
-	tcml:memory@1fff8000 {
+	/* 1fff8000 bootcode is aliased at 0x00000000 */
+	tcml:memory@00000000 {
 		compatible = "nxp,imx-itcm";
-		reg = <0x1fff8000 DT_SIZE_K(32)>;
+		reg = <0x00000000 DT_SIZE_K(32)>;
 	};
 
 	tcmu:memory@20000000 {
