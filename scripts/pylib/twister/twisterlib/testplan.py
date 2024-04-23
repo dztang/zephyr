@@ -379,13 +379,21 @@ class TestPlan:
             print("%s%s" % (pre, node.name))
 
     def report_test_list(self):
+        tag_filter = self.options.tag
+        tests_list = []
         cnt = 0
-        all_tests = self.get_all_tests()
 
-        for test in sorted(all_tests):
+        if tag_filter:
+            for _, ts in self.testsuites.items():
+                if ts.tags.intersection(tag_filter):
+                    for case in ts.testcases:
+                        tests_list.append(case.name)
+        else:
+            tests_list = self.get_all_tests()
+
+        for test in sorted(tests_list):
             cnt = cnt + 1
             print(" - {}".format(test))
-
         print("{} total.".format(cnt))
 
     def config(self):
