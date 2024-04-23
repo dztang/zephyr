@@ -23,6 +23,8 @@ manifest:
       url-base: https://github.com/zephyrproject-rtos
     - name: babblesim
       url-base: https://github.com/BabbleSim
+    - name: mcu-tools
+      url-base: https://github.com/mcu-tools
 
   group-filter: [-babblesim, -optional]
 
@@ -277,12 +279,13 @@ manifest:
       revision: 2b498e6f36d6b82ae1da12c8b7742e318624ecf5
       path: modules/lib/gui/lvgl
     - name: mbedtls
-      revision: 6ec4abdcda78dfc47315af568f93e5ad4398dea0
+      revision: pull/53/head
       path: modules/crypto/mbedtls
       groups:
         - crypto
     - name: mcuboot
-      revision: 24ac8cc2be9384288829aac7477f522a7a71f3d4
+      remote: mcu-tools
+      revision: pull/1946/head
       path: bootloader/mcuboot
     - name: mipi-sys-t
       path: modules/debug/mipi-sys-t
@@ -322,7 +325,7 @@ manifest:
       groups:
         - crypto
     - name: trusted-firmware-m
-      revision: 0b898c9b72171b0a260c0bb64a92ea4713f9e931
+      revision: pull/104/head
       path: modules/tee/tf-m/trusted-firmware-m
       groups:
         - tee
