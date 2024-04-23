@@ -10,6 +10,7 @@
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
+#include <zephyr/pm/device.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -157,6 +158,25 @@ int pm_device_runtime_put_async(const struct device *dev, k_timeout_t delay);
  * @see pm_device_runtime_enable()
  */
 bool pm_device_runtime_is_enabled(const struct device *dev);
+
+/**
+ * @brief Return the current device usage counter.
+ *
+ * @param dev Device instance.
+ *
+ * @retval the current usage counter
+ */
+static inline uint32_t pm_device_usage_get(const struct device *dev)
+{
+	struct pm_device *pm = dev->pm;
+	uint32_t usage;
+
+	(void)k_sem_take(&pm->lock, K_FOREVER);
+	usage = pm->base.usage;
+	k_sem_give(&pm->lock);
+
+	return usage;
+}
 
 #else
 
