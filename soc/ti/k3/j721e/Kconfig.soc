@@ -1,0 +1,24 @@
+# Copyright (C) 2023 BeagleBoard.org Foundation
+# Copyright (C) 2023 S Prashanth
+#
+# SPDX-License-Identifier: Apache-2.0
+
+config SOC_SERIES_J721E
+	bool
+	select SOC_FAMILY_TI_K3
+	help
+	  Enable support for the TI J721E SoC series
+
+config SOC_J721E_A72
+	bool
+	select SOC_SERIES_J721E
+
+config SOC_J721E_R5
+	bool
+	select SOC_SERIES_J721E
+
+config SOC_SERIES
+	default "j721e" if SOC_SERIES_J721E
+
+config SOC
+	default "j721e" if SOC_J721E_A72 || SOC_J721E_R5
